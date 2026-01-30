@@ -1,0 +1,47 @@
+# FortiGate AWS HA Deployment - Example Configuration
+# Copy this file to terraform.tfvars and customize for your environment
+
+# AWS Configuration
+aws_region = "us-east-1"
+environment = "prod"
+owner_tag = "NetworkTeam"
+
+# Network Configuration (Pre-assigned by network team)
+vpc_id = "vpc-12345678"
+availability_zones = ["us-east-1a", "us-east-1b"]
+
+# Subnet Configuration - Primary FortiGate (AZ1)
+outside_subnet_primary = "subnet-11111111"  # Outside subnet in AZ1
+inside_subnet_primary  = "subnet-22222222"  # Inside subnet in AZ1
+ha_subnet_primary      = "subnet-33333333"  # HA subnet in AZ1
+mgmt_subnet_primary    = "subnet-44444444"  # Management subnet in AZ1
+
+# Subnet Configuration - Backup FortiGate (AZ2)
+outside_subnet_backup = "subnet-55555555"   # Outside subnet in AZ2
+inside_subnet_backup  = "subnet-66666666"   # Inside subnet in AZ2
+ha_subnet_backup      = "subnet-77777777"   # HA subnet in AZ2
+mgmt_subnet_backup    = "subnet-88888888"   # Management subnet in AZ2
+
+# FortiGate Configuration
+fortigate_ami_id = "ami-0123456789abcdef0"  # FortiGate 7.4 AMI ID
+instance_type = "c5.xlarge"
+key_pair_name = "my-keypair"
+admin_password = "MySecurePassword123!"     # Change this!
+ha_password = "MyHAPassword123!"            # Change this!
+fortigate_hostname_primary = "fortigate-primary"
+fortigate_hostname_backup = "fortigate-backup"
+
+# Transit Gateway Configuration
+create_transit_gateway = false              # Use existing TGW
+existing_transit_gateway_id = "tgw-12345678"
+transit_gateway_asn = 64512
+bgp_asn = 65000
+spoke_vpc_cidrs = ["10.1.0.0/16", "10.2.0.0/16"]
+
+# Security Configuration
+mgmt_access_cidrs = ["10.0.0.0/8", "172.16.0.0/12"]
+
+# Monitoring Configuration
+enable_flow_logs = true
+log_retention_days = 30
+enable_detailed_monitoring = true

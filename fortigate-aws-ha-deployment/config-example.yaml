@@ -1,0 +1,74 @@
+# FortiGate AWS HA Deployment - Example Configuration File
+# Use this with: python deploy.py --config config-example.yaml
+
+aws:
+  region: us-east-1
+  profile: default  # or use access_key_id/secret_access_key
+
+network:
+  vpc_id: vpc-12345678
+  availability_zones:
+    - us-east-1a
+    - us-east-1b
+  
+  # Primary FortiGate subnets (AZ1)
+  outside_subnet_primary: subnet-11111111
+  inside_subnet_primary: subnet-22222222
+  ha_subnet_primary: subnet-33333333
+  mgmt_subnet_primary: subnet-44444444
+  
+  # Backup FortiGate subnets (AZ2)
+  outside_subnet_backup: subnet-55555555
+  inside_subnet_backup: subnet-66666666
+  ha_subnet_backup: subnet-77777777
+  mgmt_subnet_backup: subnet-88888888
+  
+  # Management access
+  mgmt_access_cidrs:
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+
+fortigate:
+  # AMI Configuration - leave ami_id empty for auto-discovery
+  ami_id: ""  # Will be auto-discovered if empty
+  ami_discovery:
+    enabled: true
+    version: "7.4"  # FortiGate version
+    license_type: "BYOL"  # BYOL, OnDemand, or Reserved
+    architecture: "x86_64"
+  
+  # Licensing Configuration
+  licensing:
+    type: "BYOL"  # BYOL, OnDemand, Reserved
+    # For BYOL with AWS Secrets Manager (recommended)
+    primary_license_secret: "fortigate/primary/license"
+    backup_license_secret: "fortigate/backup/license"
+    # Alternative: S3 bucket storage
+    # license_s3_bucket: "my-fortigate-licenses"
+    # primary_license_s3_key: "licenses/fortigate-primary.lic"
+    # backup_license_s3_key: "licenses/fortigate-backup.lic"
+  
+  # Instance Configuration
+  instance_type: c5.xlarge
+  key_pair_name: my-keypair
+  admin_password: MySecurePassword123!  # Change this!
+  ha_password: MyHAPassword123!         # Change this!
+  hostname_primary: fortigate-primary
+  hostname_backup: fortigate-backup
+
+transit_gateway:
+  create_new: false  # Use existing Transit Gateway
+  transit_gateway_id: tgw-12345678
+  bgp_asn: 65000
+  transit_gateway_asn: 64512
+  spoke_vpc_cidrs:
+    - 10.1.0.0/16
+    - 10.2.0.0/16
+
+monitoring:
+  enable_flow_logs: true
+  log_retention_days: 30
+  enable_detailed_monitoring: true
+
+environment: prod
+owner_tag: NetworkTeam
