@@ -197,6 +197,7 @@ This project includes comprehensive documentation for deployment, operation, and
 - **[README.md](README.md)** - Main project overview and quick start guide
 - **[STATE_MANAGEMENT_GUIDE.md](STATE_MANAGEMENT_GUIDE.md)** - **START HERE**: Complete guide for setting up S3 and DynamoDB for Terraform state management
 - **[EC2_KEY_PAIR_SETUP.md](EC2_KEY_PAIR_SETUP.md)** - Complete guide for creating and managing EC2 key pairs for SSH access
+- **[ENVIRONMENT_TAGGING_GUIDE.md](ENVIRONMENT_TAGGING_GUIDE.md)** - Explanation of environment tags and how they're used for resource organization
 - **[USAGE.md](USAGE.md)** - Detailed usage instructions and examples
 - **[AMI_AND_LICENSING_GUIDE.md](AMI_AND_LICENSING_GUIDE.md)** - Complete guide for AMI discovery and licensing
 - **[IAM_AND_SECURITY_REQUIREMENTS.md](IAM_AND_SECURITY_REQUIREMENTS.md)** - IAM permissions and security access requirements
