@@ -119,7 +119,9 @@ Before deployment, ensure you have:
    - Primary AZ: outside, inside, ha, mgmt subnets
    - Backup AZ: outside, inside, ha, mgmt subnets
 3. **Transit Gateway ID** (if using existing)
-4. **EC2 Key Pair** - For SSH access
+4. **EC2 Key Pair** - For SSH access to FortiGate instances
+   - **📖 See [EC2_KEY_PAIR_SETUP.md](EC2_KEY_PAIR_SETUP.md) for detailed setup instructions**
+   - Quick create: `aws ec2 create-key-pair --key-name fortigate-ha-keypair --query 'KeyMaterial' --output text > ~/.ssh/fortigate-ha-keypair.pem && chmod 400 ~/.ssh/fortigate-ha-keypair.pem`
 5. **FortiGate Licenses** (for BYOL) - Stored in Secrets Manager or S3
 
 ## Deployment Process

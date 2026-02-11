@@ -27,8 +27,11 @@ Internal VPC Subnets → Transit Gateway → FortiGate HA Pair → Internet
 - Terraform 1.0+
 - AWS CLI configured with appropriate permissions
 - FortiGate AMI access in target region
+- **EC2 Key Pair** for SSH access (see [EC2_KEY_PAIR_SETUP.md](EC2_KEY_PAIR_SETUP.md))
 
 > **📖 Detailed State Management Guide**: For comprehensive instructions on setting up and using Terraform remote state management, see **[STATE_MANAGEMENT_GUIDE.md](STATE_MANAGEMENT_GUIDE.md)**. This guide covers architecture, security, troubleshooting, and best practices.
+
+> **🔑 EC2 Key Pair Setup**: If you don't have an EC2 key pair yet, see **[EC2_KEY_PAIR_SETUP.md](EC2_KEY_PAIR_SETUP.md)** for step-by-step instructions on creating or importing key pairs.
 
 ### Step 1: Bootstrap State Management
 
@@ -193,6 +196,7 @@ This project includes comprehensive documentation for deployment, operation, and
 ### Core Documentation
 - **[README.md](README.md)** - Main project overview and quick start guide
 - **[STATE_MANAGEMENT_GUIDE.md](STATE_MANAGEMENT_GUIDE.md)** - **START HERE**: Complete guide for setting up S3 and DynamoDB for Terraform state management
+- **[EC2_KEY_PAIR_SETUP.md](EC2_KEY_PAIR_SETUP.md)** - Complete guide for creating and managing EC2 key pairs for SSH access
 - **[USAGE.md](USAGE.md)** - Detailed usage instructions and examples
 - **[AMI_AND_LICENSING_GUIDE.md](AMI_AND_LICENSING_GUIDE.md)** - Complete guide for AMI discovery and licensing
 - **[IAM_AND_SECURITY_REQUIREMENTS.md](IAM_AND_SECURITY_REQUIREMENTS.md)** - IAM permissions and security access requirements
