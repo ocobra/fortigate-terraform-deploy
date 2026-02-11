@@ -78,7 +78,11 @@ module "fortigate_ha" {
   transit_gateway_id = var.create_transit_gateway ? module.transit_gateway[0].transit_gateway_id : var.existing_transit_gateway_id
   
   # Security Configuration
-  security_group_ids = module.security.fortigate_security_group_ids
+  security_group_ids = [
+    module.security.mgmt_security_group_id,
+    module.security.data_security_group_id,
+    module.security.ha_security_group_id
+  ]
   
   # Monitoring
   enable_detailed_monitoring = var.enable_detailed_monitoring
