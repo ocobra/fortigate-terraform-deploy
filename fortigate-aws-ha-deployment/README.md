@@ -25,9 +25,11 @@ Internal VPC Subnets → Transit Gateway → FortiGate HA Pair → Internet
 
 - Python 3.8+
 - Terraform 1.0+
-- AWS CLI configured with appropriate permissions
+- **AWS CLI configured with valid credentials** (see [AWS_CREDENTIALS_SETUP.md](AWS_CREDENTIALS_SETUP.md))
 - FortiGate AMI access in target region
 - **EC2 Key Pair** for SSH access (see [EC2_KEY_PAIR_SETUP.md](EC2_KEY_PAIR_SETUP.md))
+
+> **🔐 AWS Credentials Required**: Before running the deployment, ensure your AWS credentials are properly configured. See **[AWS_CREDENTIALS_SETUP.md](AWS_CREDENTIALS_SETUP.md)** for step-by-step setup instructions.
 
 > **📖 Detailed State Management Guide**: For comprehensive instructions on setting up and using Terraform remote state management, see **[STATE_MANAGEMENT_GUIDE.md](STATE_MANAGEMENT_GUIDE.md)**. This guide covers architecture, security, troubleshooting, and best practices.
 
@@ -195,7 +197,8 @@ This project includes comprehensive documentation for deployment, operation, and
 
 ### Core Documentation
 - **[README.md](README.md)** - Main project overview and quick start guide
-- **[STATE_MANAGEMENT_GUIDE.md](STATE_MANAGEMENT_GUIDE.md)** - **START HERE**: Complete guide for setting up S3 and DynamoDB for Terraform state management
+- **[AWS_CREDENTIALS_SETUP.md](AWS_CREDENTIALS_SETUP.md)** - **TROUBLESHOOTING**: Complete guide for setting up AWS credentials
+- **[STATE_MANAGEMENT_GUIDE.md](STATE_MANAGEMENT_GUIDE.md)** - Complete guide for setting up S3 and DynamoDB for Terraform state management
 - **[EC2_KEY_PAIR_SETUP.md](EC2_KEY_PAIR_SETUP.md)** - Complete guide for creating and managing EC2 key pairs for SSH access
 - **[ENVIRONMENT_TAGGING_GUIDE.md](ENVIRONMENT_TAGGING_GUIDE.md)** - Explanation of environment tags and how they're used for resource organization
 - **[USAGE.md](USAGE.md)** - Detailed usage instructions and examples
