@@ -249,6 +249,9 @@ class LicenseManager:
         
         click.echo("✅ License format validation passed")
         return True
+
+
+class ConfigurationValidator:
     """Validates deployment configuration parameters"""
     
     def __init__(self, aws_session: boto3.Session):
