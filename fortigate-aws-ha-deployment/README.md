@@ -28,6 +28,8 @@ Internal VPC Subnets → Transit Gateway → FortiGate HA Pair → Internet
 - AWS CLI configured with appropriate permissions
 - FortiGate AMI access in target region
 
+> **📖 Detailed State Management Guide**: For comprehensive instructions on setting up and using Terraform remote state management, see **[STATE_MANAGEMENT_GUIDE.md](STATE_MANAGEMENT_GUIDE.md)**. This guide covers architecture, security, troubleshooting, and best practices.
+
 ### Step 1: Bootstrap State Management
 
 Before deploying FortiGate infrastructure, you must first create the S3 bucket and DynamoDB table for Terraform state management:
@@ -190,8 +192,10 @@ This project includes comprehensive documentation for deployment, operation, and
 
 ### Core Documentation
 - **[README.md](README.md)** - Main project overview and quick start guide
+- **[STATE_MANAGEMENT_GUIDE.md](STATE_MANAGEMENT_GUIDE.md)** - **START HERE**: Complete guide for setting up S3 and DynamoDB for Terraform state management
 - **[USAGE.md](USAGE.md)** - Detailed usage instructions and examples
 - **[AMI_AND_LICENSING_GUIDE.md](AMI_AND_LICENSING_GUIDE.md)** - Complete guide for AMI discovery and licensing
+- **[IAM_AND_SECURITY_REQUIREMENTS.md](IAM_AND_SECURITY_REQUIREMENTS.md)** - IAM permissions and security access requirements
 
 ### Operational Guides
 - **[STREAMLIT_DEPLOYMENT_GUIDE.md](STREAMLIT_DEPLOYMENT_GUIDE.md)** - Complete guide for deploying and operating the Streamlit web application
