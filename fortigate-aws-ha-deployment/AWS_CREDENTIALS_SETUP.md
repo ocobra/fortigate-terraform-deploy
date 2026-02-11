@@ -10,6 +10,27 @@ AWS was not able to validate the provided access credentials
 
 This means your AWS credentials are not properly configured.
 
+## Quick Workaround: Bypass Auto-Discovery
+
+If you need to proceed immediately while fixing credentials:
+
+1. **When the script asks**: `Auto-discover FortiGate AMI? [Y/n]:`
+   - Answer: `n` (no)
+
+2. **Find AMI ID manually** using AWS Console:
+   - Log into AWS Console: https://console.aws.amazon.com/
+   - Go to EC2 → AMIs (in left sidebar under "Images")
+   - Change dropdown to "Public images"
+   - Search for: `FortiGate-VM64-AWS 7.2 OnDemand` (or your version/license type)
+   - Copy the AMI ID (looks like `ami-0123456789abcdef0`)
+   - See [AMI_AND_LICENSING_GUIDE.md](AMI_AND_LICENSING_GUIDE.md) for detailed instructions
+
+3. **Paste the AMI ID** when prompted by the script
+
+4. **Continue with deployment** - the script will work without auto-discovery
+
+**Note**: You'll still need working AWS credentials for the actual deployment (Terraform needs them). This workaround only bypasses the AMI discovery step.
+
 ## Quick Fix
 
 ### Option 1: Configure AWS CLI (Recommended)

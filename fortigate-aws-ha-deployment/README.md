@@ -26,10 +26,12 @@ Internal VPC Subnets → Transit Gateway → FortiGate HA Pair → Internet
 - Python 3.8+
 - Terraform 1.0+
 - **AWS CLI configured with valid credentials** (see [AWS_CREDENTIALS_SETUP.md](AWS_CREDENTIALS_SETUP.md))
-- FortiGate AMI access in target region
+- **FortiGate AMI ID** for your target region (see [AMI_AND_LICENSING_GUIDE.md](AMI_AND_LICENSING_GUIDE.md))
 - **EC2 Key Pair** for SSH access (see [EC2_KEY_PAIR_SETUP.md](EC2_KEY_PAIR_SETUP.md))
 
 > **🔐 AWS Credentials Required**: Before running the deployment, ensure your AWS credentials are properly configured. See **[AWS_CREDENTIALS_SETUP.md](AWS_CREDENTIALS_SETUP.md)** for step-by-step setup instructions.
+
+> **🔍 Finding FortiGate AMI IDs**: If you're experiencing credential issues or need to manually find FortiGate AMI IDs, see **[AMI_AND_LICENSING_GUIDE.md](AMI_AND_LICENSING_GUIDE.md)** for multiple methods to discover AMI IDs, including AWS Console, Marketplace, and CLI approaches.
 
 > **📖 Detailed State Management Guide**: For comprehensive instructions on setting up and using Terraform remote state management, see **[STATE_MANAGEMENT_GUIDE.md](STATE_MANAGEMENT_GUIDE.md)**. This guide covers architecture, security, troubleshooting, and best practices.
 

@@ -570,8 +570,26 @@ class DeploymentEngine:
         
         return True
     
-    def validate_configuration(self) -> bool:
+    def validate_configuration(self, skip_validation: bool = False) -> bool:
         """Validate all configuration parameters"""
+        if skip_validation:
+            click.echo("⚠️  Skipping AWS validation (--skip-validation flag set)")
+            click.echo("⚠️  Terraform will validate resources during deployment")
+            
+            # Still need to set AMI ID if using discovery
+            if self.config.fortigate.ami_discovery.enabled and not self.config.fortigate.ami_id:
+                click.echo("❌ AMI ID required when skipping validation with auto-discovery disabled")
+                click.echo("💡 Provide AMI ID manually or remove --skip-validation flag")
+                return False
+            
+            # Basic checks that don't require AWS API
+            if not self.config.fortigate.ami_id:
+                click.echo("❌ AMI ID is required")
+                return False
+            
+            click.echo("✅ Basic configuration checks passed (AWS validation skipped)")
+            return True
+        
         click.echo("🔍 Validating deployment configuration...")
         
         # Resolve AMI ID first
@@ -675,17 +693,20 @@ class DeploymentEngine:
         # Generate plan
         return self.terraform.plan(str(self.terraform.tfvars_file))
     
-    def deploy(self) -> bool:
+    def deploy(self, skip_validation: bool = False) -> bool:
         """Execute deployment"""
         click.echo("🚀 Starting FortiGate HA deployment...")
         
         # Validate configuration
-        if not self.validate_configuration():
+        if not self.validate_configuration(skip_validation=skip_validation):
             return False
         
-        # Run analysis validation
-        if not self.run_analysis_validation():
-            return False
+        # Run analysis validation (skip if validation is disabled)
+        if not skip_validation:
+            if not self.run_analysis_validation():
+                return False
+        else:
+            click.echo("⚠️  Skipping analysis validation")
         
         # Generate plan
         if not self.plan():
@@ -779,7 +800,7 @@ def prompt_network_config() -> NetworkConfig:
     )
 
 
-def prompt_fortigate_config(aws_session: boto3.Session) -> FortiGateConfig:
+def prompt_fortigate_config(aws_session: Optional[boto3.Session]) -> FortiGateConfig:
     """Prompt user for FortiGate configuration"""
     click.echo("\n🛡️  FortiGate Configuration")
     click.echo("=" * 50)
@@ -792,28 +813,45 @@ def prompt_fortigate_config(aws_session: boto3.Session) -> FortiGateConfig:
     ami_discovery_config = None
     
     if use_auto_discovery:
-        # Show available versions
-        ami_discovery = AMIDiscovery(aws_session)
-        available_versions = ami_discovery.list_available_versions()
-        
-        if available_versions:
-            click.echo(f"Available FortiGate versions: {', '.join(available_versions)}")
-            version = click.prompt("FortiGate version", default=available_versions[0])
+        if aws_session is None:
+            click.echo("❌ Auto-discovery requires AWS credentials (not available with --skip-validation)")
+            click.echo("💡 Please provide AMI ID manually")
+            use_auto_discovery = False
+            ami_id = click.prompt("FortiGate AMI ID")
+            license_type = click.prompt(
+                "License type", 
+                type=click.Choice(['BYOL', 'OnDemand', 'Reserved'], case_sensitive=False),
+                default="BYOL"
+            )
+            ami_discovery_config = AMIDiscoveryConfig(
+                enabled=False,
+                version="7.4",
+                license_type=license_type,
+                architecture="x86_64"
+            )
         else:
-            version = click.prompt("FortiGate version", default="7.4")
-        
-        license_type = click.prompt(
-            "License type", 
-            type=click.Choice(['BYOL', 'OnDemand', 'Reserved'], case_sensitive=False),
-            default="BYOL"
-        )
-        
-        ami_discovery_config = AMIDiscoveryConfig(
-            enabled=True,
-            version=version,
-            license_type=license_type,
-            architecture="x86_64"
-        )
+            # Show available versions
+            ami_discovery = AMIDiscovery(aws_session)
+            available_versions = ami_discovery.list_available_versions()
+            
+            if available_versions:
+                click.echo(f"Available FortiGate versions: {', '.join(available_versions)}")
+                version = click.prompt("FortiGate version", default=available_versions[0])
+            else:
+                version = click.prompt("FortiGate version", default="7.4")
+            
+            license_type = click.prompt(
+                "License type", 
+                type=click.Choice(['BYOL', 'OnDemand', 'Reserved'], case_sensitive=False),
+                default="BYOL"
+            )
+            
+            ami_discovery_config = AMIDiscoveryConfig(
+                enabled=True,
+                version=version,
+                license_type=license_type,
+                architecture="x86_64"
+            )
     else:
         ami_id = click.prompt("FortiGate AMI ID")
         license_type = click.prompt(
@@ -945,15 +983,28 @@ def prompt_monitoring_config() -> MonitoringConfig:
 @click.option("--license-type", type=click.Choice(['BYOL', 'OnDemand', 'Reserved']), help="License type for AMI discovery")
 @click.option("--fortigate-version", default="7.4", help="FortiGate version for AMI discovery")
 @click.option("--list-versions", is_flag=True, help="List available FortiGate versions and exit")
+@click.option("--skip-validation", is_flag=True, help="Skip AWS API validation (use when credentials are limited)")
 def main(config: Optional[str], plan_only: bool, destroy: bool, save_config: Optional[str], 
-         auto_discover_ami: bool, license_type: Optional[str], fortigate_version: str, list_versions: bool):
+         auto_discover_ami: bool, license_type: Optional[str], fortigate_version: str, 
+         list_versions: bool, skip_validation: bool):
     """FortiGate AWS HA Deployment Script"""
     
     click.echo("🛡️  FortiGate AWS HA Deployment")
     click.echo("=" * 50)
     
+    # Show warning if skip-validation is used
+    if skip_validation:
+        click.echo("⚠️  WARNING: AWS validation is disabled")
+        click.echo("⚠️  Terraform will validate resources during deployment")
+        click.echo("⚠️  Ensure your configuration is correct!")
+        click.echo()
+    
     # Handle list-versions option
     if list_versions:
+        if skip_validation:
+            click.echo("❌ Cannot list versions with --skip-validation (requires AWS API access)")
+            sys.exit(1)
+        
         try:
             session = boto3.Session()
             ami_discovery = AMIDiscovery(session)
@@ -973,6 +1024,11 @@ def main(config: Optional[str], plan_only: bool, destroy: bool, save_config: Opt
     
     # Handle auto-discover-ami option
     if auto_discover_ami and not config:
+        if skip_validation:
+            click.echo("❌ Cannot auto-discover AMI with --skip-validation (requires AWS API access)")
+            click.echo("💡 Find AMI ID manually using AWS Console and provide it when prompted")
+            sys.exit(1)
+        
         try:
             session = boto3.Session()
             ami_discovery = AMIDiscovery(session)
@@ -1009,10 +1065,16 @@ def main(config: Optional[str], plan_only: bool, destroy: bool, save_config: Opt
         # Interactive prompts
         aws_config = prompt_aws_config()
         network_config = prompt_network_config()
-        fortigate_config = prompt_fortigate_config(
-            boto3.Session(profile_name=aws_config.profile) if aws_config.profile 
-            else boto3.Session(region_name=aws_config.region)
-        )
+        
+        # Create session for FortiGate config prompts (only if not skipping validation)
+        if skip_validation:
+            fortigate_config = prompt_fortigate_config(None)
+        else:
+            fortigate_config = prompt_fortigate_config(
+                boto3.Session(profile_name=aws_config.profile) if aws_config.profile 
+                else boto3.Session(region_name=aws_config.region)
+            )
+        
         tgw_config = prompt_transit_gateway_config()
         monitoring_config = prompt_monitoring_config()
         
@@ -1052,7 +1114,7 @@ def main(config: Optional[str], plan_only: bool, destroy: bool, save_config: Opt
         elif plan_only:
             success = engine.plan()
         else:
-            success = engine.deploy()
+            success = engine.deploy(skip_validation=skip_validation)
         
         if success:
             click.echo("✅ Operation completed successfully!")

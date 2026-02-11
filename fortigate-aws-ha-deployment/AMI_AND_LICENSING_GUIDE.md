@@ -2,311 +2,297 @@
 
 ## Overview
 
-This guide covers how to obtain FortiGate AMI images and handle licensing for your AWS deployment.
+This guide explains how to find FortiGate AMI IDs and understand the different licensing models available for FortiGate deployments on AWS.
 
-## FortiGate AMI Options
+## Finding FortiGate AMI IDs
 
-### 1. AWS Marketplace AMIs
+### Method 1: AWS Console (Recommended for Manual Discovery)
 
-FortiGate AMIs are available through AWS Marketplace with different licensing models:
+1. **Navigate to EC2 AMI Section**:
+   - Open AWS Console: https://console.aws.amazon.com/ec2/
+   - Select your target region (e.g., us-east-1)
+   - Click "AMIs" in the left sidebar under "Images"
 
-#### **BYOL (Bring Your Own License)**
-- **AMI Name Pattern**: `FortiGate-VM64-AWS-*-BYOL-*`
-- **Cost**: No hourly charges, only EC2 instance costs
-- **License Required**: Yes, you must provide your own FortiGate license
-- **Best For**: Existing FortiGate customers with licenses
+2. **Search for FortiGate AMIs**:
+   - Change filter from "Owned by me" to "Public images"
+   - In the search box, enter one of these patterns:
+     ```
+     FortiGate-VM64-AWS-7.4-OnDemand
+     FortiGate-VM64-AWS-7.2-OnDemand
+     FortiGate-VM64-AWS-7.0-OnDemand
+     ```
+   - Or search by owner: `679593333241` (Fortinet's AWS account)
 
-#### **On-Demand (PAYG - Pay As You Go)**
-- **AMI Name Pattern**: `FortiGate-VM64-AWS-*-OnDemand-*`
-- **Cost**: Hourly licensing fees + EC2 instance costs
-- **License Required**: No, included in hourly fee
-- **Best For**: Testing, proof-of-concept, or short-term deployments
+3. **Select the Appropriate AMI**:
+   - Look for the most recent build date
+   - Verify the FortiOS version matches your requirements
+   - Note the AMI ID (format: `ami-0123456789abcdef0`)
 
-#### **Reserved Instance**
-- **AMI Name Pattern**: `FortiGate-VM64-AWS-*-Reserved-*`
-- **Cost**: Upfront payment + reduced hourly rates
-- **License Required**: No, included in reserved pricing
-- **Best For**: Long-term production deployments
+4. **Copy the AMI ID**:
+   - Select the AMI from the results
+   - Copy the AMI ID from the details pane
+   - Use this ID when the deployment script prompts you
 
-### 2. AMI Discovery Methods
+### Method 2: AWS Marketplace
 
-#### **Method 1: AWS Console**
-1. Go to EC2 → Launch Instance
-2. Search for "FortiGate" in AWS Marketplace
-3. Filter by version (e.g., 7.4, 7.6)
-4. Note the AMI ID for your region
+1. **Visit AWS Marketplace**:
+   - Go to: https://aws.amazon.com/marketplace
+   - Search for "FortiGate"
 
-#### **Method 2: AWS CLI**
+2. **Select FortiGate Product**:
+   - Choose "Fortinet FortiGate Next-Generation Firewall"
+   - Select the appropriate licensing model:
+     - **On-Demand**: Pay-as-you-go hourly billing
+     - **BYOL**: Bring Your Own License
+     - **Reserved**: Discounted pricing with commitment
+
+3. **Continue to Subscribe**:
+   - Click "Continue to Subscribe"
+   - Accept the terms
+   - Click "Continue to Configuration"
+
+4. **Get AMI ID**:
+   - Select your region
+   - Select FortiOS version
+   - The AMI ID will be displayed
+   - Copy the AMI ID for use in deployment
+
+### Method 3: AWS CLI (Requires Valid Credentials)
+
+If your AWS credentials are working, you can use the AWS CLI:
+
 ```bash
-# Find latest FortiGate 7.4 BYOL AMI
+# Search for FortiGate 7.4 OnDemand AMIs
 aws ec2 describe-images \
   --owners 679593333241 \
-  --filters "Name=name,Values=FortiGate-VM64-AWS-7.4*-BYOL-*" \
+  --filters "Name=name,Values=FortiGate-VM64-AWS-7.4*OnDemand*" \
   --query 'Images[*].[ImageId,Name,CreationDate]' \
   --output table \
   --region us-east-1
 
-# Find latest FortiGate 7.4 OnDemand AMI
+# Search for FortiGate 7.2 OnDemand AMIs
 aws ec2 describe-images \
   --owners 679593333241 \
-  --filters "Name=name,Values=FortiGate-VM64-AWS-7.4*-OnDemand-*" \
+  --filters "Name=name,Values=FortiGate-VM64-AWS-7.2*OnDemand*" \
   --query 'Images[*].[ImageId,Name,CreationDate]' \
   --output table \
   --region us-east-1
 ```
 
-#### **Method 3: Automated Discovery (Enhanced Script)**
-The deployment script now includes automatic AMI discovery:
+### Method 4: Fortinet Documentation
+
+Visit Fortinet's official documentation:
+- https://docs.fortinet.com/document/fortigate-public-cloud/latest/aws-administration-guide
+
+The documentation includes AMI IDs for each region and FortiOS version.
+
+## FortiGate Licensing Models
+
+### 1. On-Demand (PAYG - Pay As You Go)
+
+**Description**: Hourly billing with no upfront costs or long-term commitments.
+
+**Characteristics**:
+- No license file required
+- Billing integrated with AWS
+- Includes FortiGuard services
+- Easy to start and stop
+- Higher hourly cost
+
+**Use Cases**:
+- Testing and development
+- Short-term deployments
+- Variable workloads
+- Proof of concept
+
+**AMI Naming Pattern**: `FortiGate-VM64-AWS-{version}-OnDemand`
+
+**Example AMI Names**:
+- `FortiGate-VM64-AWS-7.4.1-OnDemand-build2463`
+- `FortiGate-VM64-AWS-7.2.5-OnDemand-build1517`
+
+### 2. BYOL (Bring Your Own License)
+
+**Description**: Use existing FortiGate licenses purchased from Fortinet.
+
+**Characteristics**:
+- Requires valid FortiGate VM license file
+- Lower AWS compute costs (no licensing markup)
+- Separate FortiGuard subscription required
+- License must match VM specifications
+- More complex initial setup
+
+**Use Cases**:
+- Enterprise deployments
+- Long-term production environments
+- Organizations with existing Fortinet agreements
+- Cost optimization for sustained use
+
+**AMI Naming Pattern**: `FortiGate-VM64-AWS-{version}-BYOL`
+
+**License Requirements**:
+- Valid `.lic` file from Fortinet
+- License must match instance type and vCPU count
+- FortiGuard subscription (separate purchase)
+
+**License Upload Process**:
+1. Deploy FortiGate instance
+2. Access FortiGate web UI
+3. Navigate to System > FortiGuard
+4. Upload license file
+5. Reboot instance
+
+### 3. Reserved Instances
+
+**Description**: Discounted pricing with 1-year or 3-year commitment.
+
+**Characteristics**:
+- Significant cost savings (up to 60% off On-Demand)
+- Requires upfront payment or commitment
+- Region-specific
+- Can be combined with BYOL for maximum savings
+
+**Use Cases**:
+- Production environments
+- Predictable, steady-state workloads
+- Long-term deployments
+- Cost optimization
+
+## AMI Selection Guidelines
+
+### By FortiOS Version
+
+| Version | Status | Recommendation |
+|---------|--------|----------------|
+| 7.6.x | Latest | Newest features, may have limited testing |
+| 7.4.x | Stable | **Recommended** for production |
+| 7.2.x | Mature | Proven stability, widely deployed |
+| 7.0.x | Legacy | Consider upgrading |
+| 6.4.x | EOL Soon | Upgrade recommended |
+
+### By Instance Type
+
+FortiGate performance varies by AWS instance type:
+
+| Instance Type | vCPUs | Memory | Throughput | Use Case |
+|---------------|-------|--------|------------|----------|
+| c5.large | 2 | 4 GB | 1 Gbps | Small/Dev |
+| c5.xlarge | 4 | 8 GB | 2.5 Gbps | Medium |
+| c5.2xlarge | 8 | 16 GB | 5 Gbps | Large |
+| c5.4xlarge | 16 | 32 GB | 10 Gbps | Enterprise |
+| c5n.xlarge | 4 | 10.5 GB | 25 Gbps | High throughput |
+
+### By Region
+
+AMI IDs are **region-specific**. You must use the AMI ID for your target region.
+
+**Common Regions**:
+- `us-east-1` (N. Virginia)
+- `us-west-2` (Oregon)
+- `eu-west-1` (Ireland)
+- `ap-southeast-1` (Singapore)
+
+## Troubleshooting AMI Discovery
+
+### Issue: "AWS was not able to validate the provided access credentials"
+
+**Cause**: Invalid or expired AWS credentials.
+
+**Solution**:
+1. Verify AWS credentials are configured correctly
+2. Test credentials: `aws sts get-caller-identity`
+3. If failed, reconfigure: `aws configure`
+4. Generate new access keys from AWS Console if needed
+5. See `AWS_CREDENTIALS_SETUP.md` for detailed instructions
+
+### Issue: "No AMIs found matching criteria"
+
+**Cause**: Searching in wrong region or incorrect filters.
+
+**Solution**:
+1. Verify you're searching in the correct AWS region
+2. Use AWS Console method (Method 1) for manual verification
+3. Check Fortinet's official documentation for AMI IDs
+4. Ensure you're searching public images, not just owned images
+
+### Issue: "AMI not available in my region"
+
+**Cause**: FortiGate AMIs may not be published in all regions.
+
+**Solution**:
+1. Check AWS Marketplace for region availability
+2. Consider using a different region
+3. Contact Fortinet support for region-specific AMI availability
+4. Copy AMI from another region (advanced, requires permissions)
+
+## Using AMI ID in Deployment Script
+
+When running the deployment script:
 
 ```bash
-# Let the script find the latest AMI for you
-python deploy.py --auto-discover-ami
+python deploy.py
 ```
 
-## Licensing Options
+**If auto-discovery works**:
+- Script will find the latest AMI automatically
+- You can accept the suggested AMI or choose a different version
 
-### Option 1: BYOL (Bring Your Own License)
+**If auto-discovery fails** (credential issues):
+- Answer "n" when asked "Auto-discover FortiGate AMI?"
+- Manually enter the AMI ID when prompted
+- Format: `ami-0123456789abcdef0`
 
-**Requirements:**
-- Valid FortiGate VM license file (.lic)
-- License must support the number of VMs you're deploying
-- License must be appropriate for your instance size
-
-**Implementation:**
-1. Store license files in AWS Secrets Manager or S3
-2. Configure the deployment to retrieve and apply licenses
-3. License files are applied during initial configuration
-
-**License File Storage:**
-```bash
-# Store license in AWS Secrets Manager
-aws secretsmanager create-secret \
-  --name "fortigate/primary/license" \
-  --description "FortiGate Primary License" \
-  --secret-string file://fortigate-primary.lic
-
-aws secretsmanager create-secret \
-  --name "fortigate/backup/license" \
-  --description "FortiGate Backup License" \
-  --secret-string file://fortigate-backup.lic
+**Example**:
+```
+Auto-discover FortiGate AMI? [Y/n]: n
+FortiGate AMI ID: ami-0a1b2c3d4e5f67890
 ```
 
-### Option 2: On-Demand/PAYG
+## Cost Estimation
 
-**Requirements:**
-- AWS Marketplace subscription
-- Accept FortiGate terms and conditions
-- No license files needed
+### On-Demand Pricing Example (us-east-1)
 
-**Implementation:**
-- Use OnDemand AMI
-- Licensing is automatic
-- Costs are billed hourly through AWS
+| Instance Type | FortiGate License | EC2 Compute | Total/Hour | Total/Month |
+|---------------|-------------------|-------------|------------|-------------|
+| c5.xlarge | $0.40 | $0.17 | $0.57 | ~$416 |
+| c5.2xlarge | $0.80 | $0.34 | $1.14 | ~$832 |
+| c5.4xlarge | $1.60 | $0.68 | $2.28 | ~$1,664 |
 
-### Option 3: Reserved Instance
+### BYOL Pricing Example (us-east-1)
 
-**Requirements:**
-- AWS Marketplace reserved instance purchase
-- Upfront payment commitment
-- No license files needed
+| Instance Type | FortiGate License | EC2 Compute | Total/Hour | Total/Month |
+|---------------|-------------------|-------------|------------|-------------|
+| c5.xlarge | $0.00* | $0.17 | $0.17 | ~$124 |
+| c5.2xlarge | $0.00* | $0.34 | $0.34 | ~$248 |
+| c5.4xlarge | $0.00* | $0.68 | $0.68 | ~$496 |
 
-**Implementation:**
-- Purchase reserved capacity
-- Use Reserved AMI
-- Lower hourly costs
+*Requires separate license purchase from Fortinet
 
-## Enhanced Deployment Configuration
+## Additional Resources
 
-### Updated Configuration Options
+- **Fortinet AWS Documentation**: https://docs.fortinet.com/document/fortigate-public-cloud/latest/aws-administration-guide
+- **AWS Marketplace**: https://aws.amazon.com/marketplace/seller-profile?id=8f26c7e6-3e2f-4c4e-8e0e-e6c8e5e5e5e5
+- **FortiGate VM Licensing Guide**: https://docs.fortinet.com/document/fortigate/latest/vm-license-guide
+- **AWS EC2 Pricing**: https://aws.amazon.com/ec2/pricing/on-demand/
+- **Fortinet Support**: https://support.fortinet.com
 
-```yaml
-# Enhanced config with AMI and licensing options
-fortigate:
-  # AMI Configuration
-  ami_discovery:
-    enabled: true
-    version: "7.4"  # FortiGate version
-    license_type: "BYOL"  # BYOL, OnDemand, or Reserved
-    architecture: "x86_64"
-  
-  # Manual AMI specification (overrides discovery)
-  ami_id: ""  # Leave empty for auto-discovery
-  
-  # Instance Configuration
-  instance_type: c5.xlarge
-  key_pair_name: my-keypair
-  
-  # Licensing (for BYOL only)
-  licensing:
-    type: "BYOL"  # BYOL, OnDemand, Reserved
-    primary_license_secret: "fortigate/primary/license"    # AWS Secrets Manager
-    backup_license_secret: "fortigate/backup/license"      # AWS Secrets Manager
-    # Alternative: S3 bucket storage
-    license_s3_bucket: ""
-    primary_license_s3_key: ""
-    backup_license_s3_key: ""
-  
-  # Authentication
-  admin_password: "MySecurePassword123!"
-  ha_password: "MyHAPassword123!"
-  hostname_primary: fortigate-primary
-  hostname_backup: fortigate-backup
-```
+## Quick Reference: Finding AMI ID
 
-## Cost Considerations
+**Fastest Method for Manual Discovery**:
 
-### BYOL Pricing (Approximate)
-- **EC2 Instance**: $0.192/hour (c5.xlarge)
-- **FortiGate License**: $0 (you own the license)
-- **Total**: ~$0.192/hour per instance
+1. Open AWS Console → EC2 → AMIs
+2. Change to "Public images"
+3. Search: `FortiGate-VM64-AWS-7.4-OnDemand`
+4. Sort by "Creation date" (newest first)
+5. Copy AMI ID from the top result
+6. Use in deployment script
 
-### OnDemand Pricing (Approximate)
-- **EC2 Instance**: $0.192/hour (c5.xlarge)
-- **FortiGate License**: $0.50-1.00/hour (varies by instance size)
-- **Total**: ~$0.69-1.19/hour per instance
+**Example AMI IDs by Region** (as of documentation date):
 
-### Reserved Instance Pricing
-- **Upfront Cost**: $3,000-5,000 (1-year term)
-- **Hourly Rate**: $0.30-0.50/hour (reduced rate)
-- **Best for**: Long-term deployments (>6 months)
+| Region | FortiOS 7.4 OnDemand | FortiOS 7.2 OnDemand |
+|--------|---------------------|---------------------|
+| us-east-1 | ami-0xxxxxxxxxxxxx | ami-0xxxxxxxxxxxxx |
+| us-west-2 | ami-0xxxxxxxxxxxxx | ami-0xxxxxxxxxxxxx |
+| eu-west-1 | ami-0xxxxxxxxxxxxx | ami-0xxxxxxxxxxxxx |
 
-## Implementation Steps
-
-### Step 1: Choose Licensing Model
-
-**For BYOL:**
-1. Obtain FortiGate VM licenses from Fortinet
-2. Store license files securely (Secrets Manager recommended)
-3. Use BYOL AMI in deployment
-
-**For OnDemand:**
-1. Subscribe to FortiGate in AWS Marketplace
-2. Accept terms and conditions
-3. Use OnDemand AMI in deployment
-
-### Step 2: AMI Selection
-
-**Automated (Recommended):**
-```bash
-# Script will find latest AMI automatically
-python deploy.py --auto-discover-ami --license-type BYOL
-```
-
-**Manual:**
-```bash
-# Find AMI ID manually and specify in config
-aws ec2 describe-images --owners 679593333241 --filters "Name=name,Values=FortiGate-VM64-AWS-7.4*-BYOL-*"
-```
-
-### Step 3: License Management (BYOL Only)
-
-**Store licenses in AWS Secrets Manager:**
-```bash
-# Create secrets for license files
-aws secretsmanager create-secret \
-  --name "fortigate/primary/license" \
-  --secret-string file://primary.lic
-
-aws secretsmanager create-secret \
-  --name "fortigate/backup/license" \
-  --secret-string file://backup.lic
-```
-
-**IAM Permissions for License Access:**
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "secretsmanager:GetSecretValue"
-            ],
-            "Resource": [
-                "arn:aws:secretsmanager:*:*:secret:fortigate/*"
-            ]
-        }
-    ]
-}
-```
-
-## Regional AMI IDs (Examples)
-
-### FortiGate 7.4 BYOL
-| Region | AMI ID | Name |
-|--------|--------|------|
-| us-east-1 | ami-0123456789abcdef0 | FortiGate-VM64-AWS-7.4.1-BYOL-20231201 |
-| us-west-2 | ami-0987654321fedcba0 | FortiGate-VM64-AWS-7.4.1-BYOL-20231201 |
-| eu-west-1 | ami-0abcdef123456789a | FortiGate-VM64-AWS-7.4.1-BYOL-20231201 |
-
-### FortiGate 7.4 OnDemand
-| Region | AMI ID | Name |
-|--------|--------|------|
-| us-east-1 | ami-0234567890bcdef01 | FortiGate-VM64-AWS-7.4.1-OnDemand-20231201 |
-| us-west-2 | ami-0876543210edcba09 | FortiGate-VM64-AWS-7.4.1-OnDemand-20231201 |
-| eu-west-1 | ami-0bcdef234567890ab | FortiGate-VM64-AWS-7.4.1-OnDemand-20231201 |
-
-*Note: These are example AMI IDs. Use the discovery methods above to find current AMI IDs.*
-
-## Best Practices
-
-### 1. License Management
-- **Store licenses securely** in AWS Secrets Manager
-- **Use IAM roles** instead of access keys for license retrieval
-- **Rotate secrets regularly** for security
-- **Monitor license usage** to avoid compliance issues
-
-### 2. AMI Management
-- **Use latest AMIs** for security updates
-- **Test new AMIs** in non-production first
-- **Document AMI versions** used in each environment
-- **Automate AMI discovery** to stay current
-
-### 3. Cost Optimization
-- **Use BYOL for long-term** deployments if you have licenses
-- **Consider Reserved Instances** for predictable workloads
-- **Monitor costs** with AWS Cost Explorer
-- **Right-size instances** based on actual usage
-
-### 4. Security
-- **Enable encryption** for license storage
-- **Use least-privilege IAM** policies
-- **Audit license access** regularly
-- **Keep FortiGate updated** with latest patches
-
-## Troubleshooting
-
-### Common Issues
-
-**AMI Not Found:**
-```
-Error: AMI ami-12345678 not found
-```
-- Verify AMI ID is correct for your region
-- Check if you have access to the AMI
-- Ensure AMI is still available (not deprecated)
-
-**License Application Failed:**
-```
-Error: Failed to apply license file
-```
-- Verify license file format is correct
-- Check license is valid and not expired
-- Ensure license supports your instance type
-- Verify IAM permissions for Secrets Manager
-
-**Marketplace Subscription Required:**
-```
-Error: You must accept the terms and subscribe
-```
-- Go to AWS Marketplace
-- Find FortiGate product
-- Accept terms and conditions
-- Subscribe to the product
-
-## Support Resources
-
-- **Fortinet Documentation**: [docs.fortinet.com](https://docs.fortinet.com)
-- **AWS Marketplace**: Search for "FortiGate"
-- **Fortinet Support**: For licensing questions
-- **AWS Support**: For AMI and deployment issues
+⚠️ **Note**: AMI IDs change with each FortiOS release. Always verify the current AMI ID in your region using one of the methods above.
