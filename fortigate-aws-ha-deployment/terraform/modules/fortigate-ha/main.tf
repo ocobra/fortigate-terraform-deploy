@@ -196,6 +196,7 @@ resource "aws_instance" "fortigate_primary" {
     mgmt_ip         = data.aws_network_interface.primary_mgmt.private_ip
     mgmt_netmask    = cidrnetmask(data.aws_subnet.mgmt_primary.cidr_block)
     default_gateway = cidrhost(data.aws_subnet.outside_primary.cidr_block, 1)
+    mgmt_gateway    = cidrhost(data.aws_subnet.mgmt_primary.cidr_block, 1)
   }))
   
   tags = {
@@ -245,6 +246,7 @@ resource "aws_instance" "fortigate_backup" {
     mgmt_ip         = data.aws_network_interface.backup_mgmt.private_ip
     mgmt_netmask    = cidrnetmask(data.aws_subnet.mgmt_backup.cidr_block)
     default_gateway = cidrhost(data.aws_subnet.outside_backup.cidr_block, 1)
+    mgmt_gateway    = cidrhost(data.aws_subnet.mgmt_backup.cidr_block, 1)
   }))
   
   tags = {

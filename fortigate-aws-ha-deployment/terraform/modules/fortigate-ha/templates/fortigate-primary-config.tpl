@@ -69,7 +69,7 @@ config system ha
     config ha-mgmt-interfaces
         edit 1
             set interface "port4"
-            set gateway ${default_gateway}
+            set gateway ${mgmt_gateway}
         next
     end
     set override disable
