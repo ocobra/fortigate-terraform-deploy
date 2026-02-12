@@ -302,31 +302,35 @@ resource "aws_network_interface_attachment" "backup_mgmt" {
   device_index         = 3
 }
 
-# Disable source/destination check on all ENIs for routing
-resource "aws_ec2_network_interface_source_dest_check" "primary_outside" {
-  network_interface_id = var.primary_outside_eni_id
-  source_dest_check    = false
+# Disable source/destination check on ENIs for routing
+resource "null_resource" "disable_source_dest_check_primary_outside" {
+  provisioner "local-exec" {
+    command = "aws ec2 modify-network-interface-attribute --network-interface-id ${var.primary_outside_eni_id} --no-source-dest-check --region ${var.aws_region}"
+  }
   
   depends_on = [aws_instance.fortigate_primary]
 }
 
-resource "aws_ec2_network_interface_source_dest_check" "primary_inside" {
-  network_interface_id = var.primary_inside_eni_id
-  source_dest_check    = false
+resource "null_resource" "disable_source_dest_check_primary_inside" {
+  provisioner "local-exec" {
+    command = "aws ec2 modify-network-interface-attribute --network-interface-id ${var.primary_inside_eni_id} --no-source-dest-check --region ${var.aws_region}"
+  }
   
   depends_on = [aws_network_interface_attachment.primary_inside]
 }
 
-resource "aws_ec2_network_interface_source_dest_check" "backup_outside" {
-  network_interface_id = var.backup_outside_eni_id
-  source_dest_check    = false
+resource "null_resource" "disable_source_dest_check_backup_outside" {
+  provisioner "local-exec" {
+    command = "aws ec2 modify-network-interface-attribute --network-interface-id ${var.backup_outside_eni_id} --no-source-dest-check --region ${var.aws_region}"
+  }
   
   depends_on = [aws_instance.fortigate_backup]
 }
 
-resource "aws_ec2_network_interface_source_dest_check" "backup_inside" {
-  network_interface_id = var.backup_inside_eni_id
-  source_dest_check    = false
+resource "null_resource" "disable_source_dest_check_backup_inside" {
+  provisioner "local-exec" {
+    command = "aws ec2 modify-network-interface-attribute --network-interface-id ${var.backup_inside_eni_id} --no-source-dest-check --region ${var.aws_region}"
+  }
   
   depends_on = [aws_network_interface_attachment.backup_inside]
 }
