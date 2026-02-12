@@ -306,8 +306,9 @@ resource "aws_network_interface_attachment" "backup_mgmt" {
 # Using null_resource with triggers for idempotency
 resource "null_resource" "disable_source_dest_check_primary_outside" {
   triggers = {
-    eni_id = var.primary_outside_eni_id
+    eni_id      = var.primary_outside_eni_id
     instance_id = aws_instance.fortigate_primary.id
+    region      = var.aws_region
   }
   
   provisioner "local-exec" {
@@ -316,7 +317,7 @@ resource "null_resource" "disable_source_dest_check_primary_outside" {
   
   provisioner "local-exec" {
     when    = destroy
-    command = "aws ec2 modify-network-interface-attribute --network-interface-id ${self.triggers.eni_id} --source-dest-check --region ${var.aws_region}"
+    command = "aws ec2 modify-network-interface-attribute --network-interface-id ${self.triggers.eni_id} --source-dest-check --region ${self.triggers.region}"
   }
   
   depends_on = [aws_instance.fortigate_primary]
@@ -324,8 +325,9 @@ resource "null_resource" "disable_source_dest_check_primary_outside" {
 
 resource "null_resource" "disable_source_dest_check_primary_inside" {
   triggers = {
-    eni_id = var.primary_inside_eni_id
+    eni_id      = var.primary_inside_eni_id
     instance_id = aws_instance.fortigate_primary.id
+    region      = var.aws_region
   }
   
   provisioner "local-exec" {
@@ -334,7 +336,7 @@ resource "null_resource" "disable_source_dest_check_primary_inside" {
   
   provisioner "local-exec" {
     when    = destroy
-    command = "aws ec2 modify-network-interface-attribute --network-interface-id ${self.triggers.eni_id} --source-dest-check --region ${var.aws_region}"
+    command = "aws ec2 modify-network-interface-attribute --network-interface-id ${self.triggers.eni_id} --source-dest-check --region ${self.triggers.region}"
   }
   
   depends_on = [aws_network_interface_attachment.primary_inside]
@@ -342,8 +344,9 @@ resource "null_resource" "disable_source_dest_check_primary_inside" {
 
 resource "null_resource" "disable_source_dest_check_backup_outside" {
   triggers = {
-    eni_id = var.backup_outside_eni_id
+    eni_id      = var.backup_outside_eni_id
     instance_id = aws_instance.fortigate_backup.id
+    region      = var.aws_region
   }
   
   provisioner "local-exec" {
@@ -352,7 +355,7 @@ resource "null_resource" "disable_source_dest_check_backup_outside" {
   
   provisioner "local-exec" {
     when    = destroy
-    command = "aws ec2 modify-network-interface-attribute --network-interface-id ${self.triggers.eni_id} --source-dest-check --region ${var.aws_region}"
+    command = "aws ec2 modify-network-interface-attribute --network-interface-id ${self.triggers.eni_id} --source-dest-check --region ${self.triggers.region}"
   }
   
   depends_on = [aws_instance.fortigate_backup]
@@ -360,8 +363,9 @@ resource "null_resource" "disable_source_dest_check_backup_outside" {
 
 resource "null_resource" "disable_source_dest_check_backup_inside" {
   triggers = {
-    eni_id = var.backup_inside_eni_id
+    eni_id      = var.backup_inside_eni_id
     instance_id = aws_instance.fortigate_backup.id
+    region      = var.aws_region
   }
   
   provisioner "local-exec" {
@@ -370,7 +374,7 @@ resource "null_resource" "disable_source_dest_check_backup_inside" {
   
   provisioner "local-exec" {
     when    = destroy
-    command = "aws ec2 modify-network-interface-attribute --network-interface-id ${self.triggers.eni_id} --source-dest-check --region ${var.aws_region}"
+    command = "aws ec2 modify-network-interface-attribute --network-interface-id ${self.triggers.eni_id} --source-dest-check --region ${self.triggers.region}"
   }
   
   depends_on = [aws_network_interface_attachment.backup_inside]
