@@ -199,6 +199,7 @@ This project includes comprehensive documentation for deployment, operation, and
 
 ### Core Documentation
 - **[README.md](README.md)** - Main project overview and quick start guide
+- **[DEPLOYMENT-PARAMETERS-GUIDE.md](DEPLOYMENT-PARAMETERS-GUIDE.md)** - **COMPLETE REFERENCE**: Comprehensive guide for all deployment parameters, CLI options, and configuration formats
 - **[AWS_CREDENTIALS_SETUP.md](AWS_CREDENTIALS_SETUP.md)** - **TROUBLESHOOTING**: Complete guide for setting up AWS credentials
 - **[STATE_MANAGEMENT_GUIDE.md](STATE_MANAGEMENT_GUIDE.md)** - Complete guide for setting up S3 and DynamoDB for Terraform state management
 - **[EC2_KEY_PAIR_SETUP.md](EC2_KEY_PAIR_SETUP.md)** - Complete guide for creating and managing EC2 key pairs for SSH access
@@ -206,6 +207,7 @@ This project includes comprehensive documentation for deployment, operation, and
 - **[USAGE.md](USAGE.md)** - Detailed usage instructions and examples
 - **[AMI_AND_LICENSING_GUIDE.md](AMI_AND_LICENSING_GUIDE.md)** - Complete guide for AMI discovery and licensing
 - **[IAM_AND_SECURITY_REQUIREMENTS.md](IAM_AND_SECURITY_REQUIREMENTS.md)** - IAM permissions and security access requirements
+- **[ROOT-LEVEL-INTEGRATION-COMPLETE.md](ROOT-LEVEL-INTEGRATION-COMPLETE.md)** - EIP failover configuration and architecture
 
 ### Operational Guides
 - **[STREAMLIT_DEPLOYMENT_GUIDE.md](STREAMLIT_DEPLOYMENT_GUIDE.md)** - Complete guide for deploying and operating the Streamlit web application

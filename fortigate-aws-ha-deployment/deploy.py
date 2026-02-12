@@ -1268,26 +1268,90 @@ def prompt_monitoring_config() -> MonitoringConfig:
 
 
 @click.command()
-@click.option("--config", "-c", type=click.Path(exists=True), help="Configuration file path")
-@click.option("--plan-only", is_flag=True, help="Generate plan only, do not deploy")
-@click.option("--destroy", is_flag=True, help="Destroy existing deployment")
-@click.option("--save-config", type=click.Path(), help="Save configuration to file")
-@click.option("--auto-discover-ami", is_flag=True, help="Auto-discover FortiGate AMI")
-@click.option("--license-type", type=click.Choice(['BYOL', 'OnDemand', 'Reserved']), help="License type for AMI discovery")
-@click.option("--fortigate-version", default="7.4", help="FortiGate version for AMI discovery")
-@click.option("--list-versions", is_flag=True, help="List available FortiGate versions and exit")
-@click.option("--skip-validation", is_flag=True, help="Skip AWS API validation (use when credentials are limited)")
-@click.option("--backend", type=click.Choice(['local', 's3'], case_sensitive=False), help="Terraform backend type (local or s3)")
-@click.option("--s3-bucket", help="S3 bucket name for remote state (requires --backend=s3)")
-@click.option("--s3-key", default="fortigate-ha/terraform.tfstate", help="S3 key for state file")
-@click.option("--s3-region", help="S3 bucket region")
-@click.option("--dynamodb-table", default="fortigate-terraform-locks", help="DynamoDB table for state locking")
-@click.option("--bootstrap-info", is_flag=True, help="Show bootstrap setup information and exit")
+@click.option("--config", "-c", type=click.Path(exists=True), 
+              help="Load configuration from YAML or JSON file")
+@click.option("--plan-only", is_flag=True, 
+              help="Generate Terraform plan only, do not deploy")
+@click.option("--destroy", is_flag=True, 
+              help="Destroy existing FortiGate HA deployment")
+@click.option("--save-config", type=click.Path(), 
+              help="Save configuration to file after interactive prompts")
+@click.option("--auto-discover-ami", is_flag=True, 
+              help="Auto-discover FortiGate AMI from AWS Marketplace and exit")
+@click.option("--license-type", type=click.Choice(['BYOL', 'OnDemand', 'Reserved']), 
+              help="License type for AMI discovery (BYOL, OnDemand, or Reserved)")
+@click.option("--fortigate-version", default="7.4", 
+              help="FortiGate version for AMI discovery (e.g., 7.4, 7.2, 7.0)")
+@click.option("--list-versions", is_flag=True, 
+              help="List all available FortiGate versions from AWS Marketplace and exit")
+@click.option("--skip-validation", is_flag=True, 
+              help="Skip AWS API validation checks (Terraform will still validate during deployment)")
+@click.option("--backend", type=click.Choice(['local', 's3'], case_sensitive=False), 
+              help="Terraform backend type: 'local' for local state, 's3' for remote state")
+@click.option("--s3-bucket", 
+              help="S3 bucket name for Terraform remote state (requires --backend=s3)")
+@click.option("--s3-key", default="fortigate-ha/terraform.tfstate", 
+              help="S3 object key for Terraform state file (default: fortigate-ha/terraform.tfstate)")
+@click.option("--s3-region", 
+              help="AWS region where S3 bucket is located (defaults to deployment region)")
+@click.option("--dynamodb-table", default="fortigate-terraform-locks", 
+              help="DynamoDB table name for state locking (default: fortigate-terraform-locks)")
+@click.option("--bootstrap-info", is_flag=True, 
+              help="Display S3 backend bootstrap setup instructions and exit")
 def main(config: Optional[str], plan_only: bool, destroy: bool, save_config: Optional[str], 
          auto_discover_ami: bool, license_type: Optional[str], fortigate_version: str, 
          list_versions: bool, skip_validation: bool, backend: Optional[str], s3_bucket: Optional[str],
          s3_key: str, s3_region: Optional[str], dynamodb_table: str, bootstrap_info: bool):
-    """FortiGate AWS HA Deployment Script"""
+    """
+    FortiGate AWS HA Deployment Script
+    
+    Deploy highly available FortiGate firewall pairs on AWS with Transit Gateway integration.
+    
+    \b
+    USAGE MODES:
+      Interactive:  python deploy.py
+      From Config:  python deploy.py --config deployment.yaml
+      Plan Only:    python deploy.py --plan-only
+      Destroy:      python deploy.py --destroy
+    
+    \b
+    EXAMPLES:
+      # Interactive deployment with S3 backend
+      python deploy.py --backend s3 --s3-bucket my-state-bucket
+      
+      # Deploy from configuration file
+      python deploy.py --config my-deployment.yaml
+      
+      # Generate plan without deploying
+      python deploy.py --config my-deployment.yaml --plan-only
+      
+      # Auto-discover FortiGate AMI
+      python deploy.py --auto-discover-ami --license-type BYOL --fortigate-version 7.4
+      
+      # List available FortiGate versions
+      python deploy.py --list-versions
+      
+      # Show bootstrap setup instructions
+      python deploy.py --bootstrap-info
+    
+    \b
+    REQUIRED RESOURCES (must exist before deployment):
+      - VPC with subnets in 2 availability zones
+      - 8 ENIs (4 per FortiGate: OUTSIDE, INSIDE, HA, MGMT)
+      - EC2 Key Pair for SSH access
+      - FortiGate AMI ID (or use --auto-discover-ami)
+      - Transit Gateway (or create new with create_transit_gateway=true)
+    
+    \b
+    DOCUMENTATION:
+      Full Parameters Guide:  DEPLOYMENT-PARAMETERS-GUIDE.md
+      ENI Creation:          ENI-CREATION-README.md
+      State Management:      STATE_MANAGEMENT_GUIDE.md
+      AWS Credentials:       AWS_CREDENTIALS_SETUP.md
+      EIP Failover:          ROOT-LEVEL-INTEGRATION-COMPLETE.md
+    
+    For detailed parameter documentation, see DEPLOYMENT-PARAMETERS-GUIDE.md
+    """
     
     click.echo("🛡️  FortiGate AWS HA Deployment")
     click.echo("=" * 50)
