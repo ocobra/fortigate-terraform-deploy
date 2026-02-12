@@ -203,3 +203,9 @@ variable "aws_region" {
   description = "AWS region for FortiGate AWS SDN connector configuration"
   type        = string
 }
+
+variable "aws_profile" {
+  description = "AWS CLI profile name for API calls"
+  type        = string
+  default     = ""
+}

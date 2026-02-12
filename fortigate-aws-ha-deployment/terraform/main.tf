@@ -107,6 +107,7 @@ module "fortigate_ha" {
   # EIP Failover Configuration
   enable_eip_failover = var.enable_eip_failover
   aws_region          = var.aws_region
+  aws_profile         = var.aws_profile
   
   # Tags
   environment = var.environment
