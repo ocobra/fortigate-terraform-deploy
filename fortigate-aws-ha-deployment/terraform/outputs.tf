@@ -135,6 +135,16 @@ output "elastic_ips" {
   }
 }
 
+# IAM Information (EIP Failover)
+output "iam_configuration" {
+  description = "IAM configuration for EIP failover"
+  value = {
+    iam_role_arn           = module.fortigate_ha.iam_role_arn
+    iam_instance_profile   = module.fortigate_ha.iam_instance_profile_name
+    eip_failover_enabled   = module.fortigate_ha.eip_failover_enabled
+  }
+}
+
 # Route Table Information (for troubleshooting)
 output "route_table_info" {
   description = "Route table information for troubleshooting"

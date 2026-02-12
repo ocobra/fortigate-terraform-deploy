@@ -356,3 +356,10 @@ variable "backup_outside_eip_id" {
   type        = string
   default     = ""
 }
+
+# EIP Failover Configuration
+variable "enable_eip_failover" {
+  description = "Enable FortiGate HA EIP failover using AWS SDN connector (requires IAM role)"
+  type        = bool
+  default     = true
+}

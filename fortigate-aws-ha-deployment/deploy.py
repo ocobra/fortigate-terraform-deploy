@@ -68,6 +68,8 @@ class NetworkConfig:
     allocate_eips: bool = False
     primary_outside_eip_id: Optional[str] = None
     backup_outside_eip_id: Optional[str] = None
+    # EIP Failover configuration
+    enable_eip_failover: bool = True
 
 
 @dataclass
@@ -570,6 +572,9 @@ allocate_eips = {str(config.network.allocate_eips).lower()}
 primary_outside_eip_id = "{config.network.primary_outside_eip_id or ''}"
 backup_outside_eip_id = "{config.network.backup_outside_eip_id or ''}"
 
+# EIP Failover Configuration
+enable_eip_failover = {str(config.network.enable_eip_failover).lower()}
+
 # FortiGate Configuration
 fortigate_ami_id = "{config.fortigate.ami_id}"
 instance_type = "{config.fortigate.instance_type}"
@@ -996,6 +1001,22 @@ def prompt_network_config() -> NetworkConfig:
             # Convert empty strings to None
             primary_outside_eip_id = primary_outside_eip_id if primary_outside_eip_id else None
             backup_outside_eip_id = backup_outside_eip_id if backup_outside_eip_id else None
+        
+        # EIP Failover Configuration
+        click.echo("\nEIP Failover Configuration:")
+        click.echo("FortiGate HA can automatically manage EIP failover using AWS SDN connector.")
+        click.echo("This requires IAM permissions and AWS SDN connector configuration.")
+        enable_eip_failover = click.confirm("Enable FortiGate HA EIP failover?", default=True)
+        
+        if enable_eip_failover:
+            click.echo("✅ EIP failover enabled - FortiGate will manage EIP associations")
+            click.echo("   EIPs will be allocated but NOT statically associated")
+            click.echo("   FortiGate HA will move EIPs during failover events")
+        else:
+            click.echo("⚠️  EIP failover disabled - EIPs will be statically associated")
+            click.echo("   Manual intervention required for EIP failover")
+    else:
+        enable_eip_failover = False
     
     return NetworkConfig(
         vpc_id=vpc_id,
@@ -1019,7 +1040,8 @@ def prompt_network_config() -> NetworkConfig:
         backup_mgmt_eni_id=backup_mgmt_eni,
         allocate_eips=allocate_eips,
         primary_outside_eip_id=primary_outside_eip_id,
-        backup_outside_eip_id=backup_outside_eip_id
+        backup_outside_eip_id=backup_outside_eip_id,
+        enable_eip_failover=enable_eip_failover if allocate_eips else False
     )
 
 

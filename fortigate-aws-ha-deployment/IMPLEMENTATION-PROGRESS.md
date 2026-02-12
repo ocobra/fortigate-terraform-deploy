@@ -1,6 +1,6 @@
 # FortiGate HA EIP Failover - Implementation Progress
 
-## Status: Phases 1-3 Complete ✅
+## Status: Phases 1-3 Complete, Root-Level Integration Complete ✅
 
 ### Completed Phases
 
@@ -74,6 +74,25 @@ end
 
 **Template Variables Added:**
 - `aws_region` - AWS region for SDN connector
+
+#### Root-Level Integration ✅ (NEW - Completed)
+**Status:** Complete  
+**Commit:** Pending
+
+**Tasks Completed:**
+- [x] Update `terraform/main.tf` to pass `enable_eip_failover` and `aws_region` to module
+- [x] Add `enable_eip_failover` variable to `terraform/variables.tf`
+- [x] Add IAM outputs to `terraform/outputs.tf`
+- [x] Update `deploy.py` to prompt for EIP failover configuration
+- [x] Update `NetworkConfig` dataclass with `enable_eip_failover` field
+- [x] Update `generate_tfvars` method to include `enable_eip_failover`
+
+**Changes:**
+- Root `main.tf` now passes both new variables to fortigate_ha module
+- Root `variables.tf` includes `enable_eip_failover` with default `true`
+- Root `outputs.tf` includes new `iam_configuration` output block
+- `deploy.py` prompts user for EIP failover preference when allocating EIPs
+- `deploy.py` generates tfvars with `enable_eip_failover` setting
 
 ### Remaining Phases
 
@@ -231,7 +250,12 @@ backup_outside_eip_id = "eipalloc-xxxxx"   # Optional
 
 ## Files Modified
 
-### Terraform Module
+### Terraform Root Module
+- `terraform/main.tf` - Pass enable_eip_failover and aws_region to fortigate_ha module
+- `terraform/variables.tf` - Added enable_eip_failover variable
+- `terraform/outputs.tf` - Added iam_configuration output
+
+### Terraform FortiGate HA Module
 - `terraform/modules/fortigate-ha/main.tf` - Added IAM resources, removed EIP associations
 - `terraform/modules/fortigate-ha/variables.tf` - Added enable_eip_failover and aws_region
 - `terraform/modules/fortigate-ha/outputs.tf` - Added IAM outputs
@@ -239,6 +263,9 @@ backup_outside_eip_id = "eipalloc-xxxxx"   # Optional
 ### FortiGate Templates
 - `terraform/modules/fortigate-ha/templates/fortigate-primary-config.tpl` - Added SDN connector
 - `terraform/modules/fortigate-ha/templates/fortigate-backup-config.tpl` - Added SDN connector
+
+### Deployment Script
+- `deploy.py` - Added EIP failover prompts and configuration generation
 
 ## Testing Checklist
 

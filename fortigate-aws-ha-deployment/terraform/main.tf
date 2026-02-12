@@ -104,6 +104,10 @@ module "fortigate_ha" {
   primary_outside_eip_id  = var.primary_outside_eip_id
   backup_outside_eip_id   = var.backup_outside_eip_id
   
+  # EIP Failover Configuration
+  enable_eip_failover = var.enable_eip_failover
+  aws_region          = var.aws_region
+  
   # Tags
   environment = var.environment
   owner_tag   = var.owner_tag
