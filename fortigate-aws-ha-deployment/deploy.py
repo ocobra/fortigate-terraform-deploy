@@ -55,6 +55,15 @@ class NetworkConfig:
     ha_subnet_backup: str
     mgmt_subnet_backup: str
     mgmt_access_cidrs: List[str]
+    # ENI IDs (pre-created by network team)
+    primary_outside_eni_id: str
+    primary_inside_eni_id: str
+    primary_ha_eni_id: str
+    primary_mgmt_eni_id: str
+    backup_outside_eni_id: str
+    backup_inside_eni_id: str
+    backup_ha_eni_id: str
+    backup_mgmt_eni_id: str
 
 
 @dataclass
@@ -294,6 +303,27 @@ class ConfigurationValidator:
             click.echo(f"❌ Error validating subnets: {e}")
             return False
     
+    def validate_enis(self, eni_ids: List[str]) -> bool:
+        """Validate ENIs exist and are available"""
+        try:
+            response = self.ec2.describe_network_interfaces(NetworkInterfaceIds=eni_ids)
+            enis = response['NetworkInterfaces']
+            
+            if len(enis) != len(eni_ids):
+                click.echo(f"❌ Not all ENIs found. Expected {len(eni_ids)}, found {len(enis)}")
+                return False
+            
+            for eni in enis:
+                if eni['Status'] not in ['available', 'in-use']:
+                    click.echo(f"❌ ENI {eni['NetworkInterfaceId']} is not available: {eni['Status']}")
+                    return False
+            
+            click.echo(f"✅ All {len(eni_ids)} ENIs validated successfully")
+            return True
+        except Exception as e:
+            click.echo(f"❌ Error validating ENIs: {e}")
+            return False
+    
     def validate_transit_gateway(self, tgw_id: str) -> bool:
         """Validate Transit Gateway exists and is available"""
         try:
@@ -421,6 +451,17 @@ outside_subnet_backup = "{config.network.outside_subnet_backup}"
 inside_subnet_backup = "{config.network.inside_subnet_backup}"
 ha_subnet_backup = "{config.network.ha_subnet_backup}"
 mgmt_subnet_backup = "{config.network.mgmt_subnet_backup}"
+
+# ENI Configuration (Pre-created by Network Team)
+primary_outside_eni_id = "{config.network.primary_outside_eni_id}"
+primary_inside_eni_id = "{config.network.primary_inside_eni_id}"
+primary_ha_eni_id = "{config.network.primary_ha_eni_id}"
+primary_mgmt_eni_id = "{config.network.primary_mgmt_eni_id}"
+
+backup_outside_eni_id = "{config.network.backup_outside_eni_id}"
+backup_inside_eni_id = "{config.network.backup_inside_eni_id}"
+backup_ha_eni_id = "{config.network.backup_ha_eni_id}"
+backup_mgmt_eni_id = "{config.network.backup_mgmt_eni_id}"
 
 # FortiGate Configuration
 fortigate_ami_id = "{config.fortigate.ami_id}"
@@ -619,6 +660,21 @@ class DeploymentEngine:
         if not self.validator.validate_subnets(all_subnets, self.config.network.availability_zones):
             return False
         
+        # Validate ENIs (pre-created by network team)
+        all_enis = [
+            self.config.network.primary_outside_eni_id,
+            self.config.network.primary_inside_eni_id,
+            self.config.network.primary_ha_eni_id,
+            self.config.network.primary_mgmt_eni_id,
+            self.config.network.backup_outside_eni_id,
+            self.config.network.backup_inside_eni_id,
+            self.config.network.backup_ha_eni_id,
+            self.config.network.backup_mgmt_eni_id,
+        ]
+        
+        if not self.validator.validate_enis(all_enis):
+            return False
+        
         # Validate Transit Gateway if using existing
         if not self.config.transit_gateway.create_new:
             if not self.config.transit_gateway.transit_gateway_id:
@@ -781,6 +837,19 @@ def prompt_network_config() -> NetworkConfig:
     ha_backup = click.prompt("  HA subnet ID")
     mgmt_backup = click.prompt("  Management subnet ID")
     
+    click.echo("\nENI IDs (pre-created by network team):")
+    click.echo("Primary FortiGate ENIs:")
+    primary_outside_eni = click.prompt("  Outside ENI ID")
+    primary_inside_eni = click.prompt("  Inside ENI ID")
+    primary_ha_eni = click.prompt("  HA ENI ID")
+    primary_mgmt_eni = click.prompt("  Management ENI ID")
+    
+    click.echo("Backup FortiGate ENIs:")
+    backup_outside_eni = click.prompt("  Outside ENI ID")
+    backup_inside_eni = click.prompt("  Inside ENI ID")
+    backup_ha_eni = click.prompt("  HA ENI ID")
+    backup_mgmt_eni = click.prompt("  Management ENI ID")
+    
     click.echo("\nManagement Access:")
     mgmt_cidrs_input = click.prompt("Management access CIDRs (comma-separated)", default="10.0.0.0/8")
     mgmt_cidrs = [cidr.strip() for cidr in mgmt_cidrs_input.split(",")]
@@ -796,7 +865,15 @@ def prompt_network_config() -> NetworkConfig:
         inside_subnet_backup=inside_backup,
         ha_subnet_backup=ha_backup,
         mgmt_subnet_backup=mgmt_backup,
-        mgmt_access_cidrs=mgmt_cidrs
+        mgmt_access_cidrs=mgmt_cidrs,
+        primary_outside_eni_id=primary_outside_eni,
+        primary_inside_eni_id=primary_inside_eni,
+        primary_ha_eni_id=primary_ha_eni,
+        primary_mgmt_eni_id=primary_mgmt_eni,
+        backup_outside_eni_id=backup_outside_eni,
+        backup_inside_eni_id=backup_inside_eni,
+        backup_ha_eni_id=backup_ha_eni,
+        backup_mgmt_eni_id=backup_mgmt_eni
     )
 
 

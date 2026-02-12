@@ -52,6 +52,47 @@ variable "mgmt_subnet_backup" {
   type        = string
 }
 
+# ENI Configuration (Pre-created by Network Team)
+variable "primary_outside_eni_id" {
+  description = "ENI ID for primary FortiGate outside interface (pre-created by network team)"
+  type        = string
+}
+
+variable "primary_inside_eni_id" {
+  description = "ENI ID for primary FortiGate inside interface (pre-created by network team)"
+  type        = string
+}
+
+variable "primary_ha_eni_id" {
+  description = "ENI ID for primary FortiGate HA interface (pre-created by network team)"
+  type        = string
+}
+
+variable "primary_mgmt_eni_id" {
+  description = "ENI ID for primary FortiGate management interface (pre-created by network team)"
+  type        = string
+}
+
+variable "backup_outside_eni_id" {
+  description = "ENI ID for backup FortiGate outside interface (pre-created by network team)"
+  type        = string
+}
+
+variable "backup_inside_eni_id" {
+  description = "ENI ID for backup FortiGate inside interface (pre-created by network team)"
+  type        = string
+}
+
+variable "backup_ha_eni_id" {
+  description = "ENI ID for backup FortiGate HA interface (pre-created by network team)"
+  type        = string
+}
+
+variable "backup_mgmt_eni_id" {
+  description = "ENI ID for backup FortiGate management interface (pre-created by network team)"
+  type        = string
+}
+
 # FortiGate Configuration
 variable "fortigate_ami_id" {
   description = "AMI ID for FortiGate instances"

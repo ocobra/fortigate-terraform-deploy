@@ -19,83 +19,83 @@ output "instance_ids" {
 # IP Address Information
 output "primary_inside_ip" {
   description = "Inside interface IP of primary FortiGate"
-  value       = aws_network_interface.primary_inside.private_ip
+  value       = data.aws_network_interface.primary_inside.private_ip
 }
 
 output "backup_inside_ip" {
   description = "Inside interface IP of backup FortiGate"
-  value       = aws_network_interface.backup_inside.private_ip
+  value       = data.aws_network_interface.backup_inside.private_ip
 }
 
 output "primary_outside_ip" {
   description = "Outside interface IP of primary FortiGate"
-  value       = aws_network_interface.primary_outside.private_ip
+  value       = data.aws_network_interface.primary_outside.private_ip
 }
 
 output "backup_outside_ip" {
   description = "Outside interface IP of backup FortiGate"
-  value       = aws_network_interface.backup_outside.private_ip
+  value       = data.aws_network_interface.backup_outside.private_ip
 }
 
 output "primary_mgmt_ip" {
   description = "Management interface IP of primary FortiGate"
-  value       = aws_network_interface.primary_mgmt.private_ip
+  value       = data.aws_network_interface.primary_mgmt.private_ip
 }
 
 output "backup_mgmt_ip" {
   description = "Management interface IP of backup FortiGate"
-  value       = aws_network_interface.backup_mgmt.private_ip
+  value       = data.aws_network_interface.backup_mgmt.private_ip
 }
 
 output "primary_ha_ip" {
   description = "HA interface IP of primary FortiGate"
-  value       = aws_network_interface.primary_ha.private_ip
+  value       = data.aws_network_interface.primary_ha.private_ip
 }
 
 output "backup_ha_ip" {
   description = "HA interface IP of backup FortiGate"
-  value       = aws_network_interface.backup_ha.private_ip
+  value       = data.aws_network_interface.backup_ha.private_ip
 }
 
 # ENI Information
 output "primary_outside_eni_id" {
   description = "ENI ID of primary FortiGate outside interface"
-  value       = aws_network_interface.primary_outside.id
+  value       = var.primary_outside_eni_id
 }
 
 output "primary_inside_eni_id" {
   description = "ENI ID of primary FortiGate inside interface"
-  value       = aws_network_interface.primary_inside.id
+  value       = var.primary_inside_eni_id
 }
 
 output "primary_ha_eni_id" {
   description = "ENI ID of primary FortiGate HA interface"
-  value       = aws_network_interface.primary_ha.id
+  value       = var.primary_ha_eni_id
 }
 
 output "primary_mgmt_eni_id" {
   description = "ENI ID of primary FortiGate management interface"
-  value       = aws_network_interface.primary_mgmt.id
+  value       = var.primary_mgmt_eni_id
 }
 
 output "backup_outside_eni_id" {
   description = "ENI ID of backup FortiGate outside interface"
-  value       = aws_network_interface.backup_outside.id
+  value       = var.backup_outside_eni_id
 }
 
 output "backup_inside_eni_id" {
   description = "ENI ID of backup FortiGate inside interface"
-  value       = aws_network_interface.backup_inside.id
+  value       = var.backup_inside_eni_id
 }
 
 output "backup_ha_eni_id" {
   description = "ENI ID of backup FortiGate HA interface"
-  value       = aws_network_interface.backup_ha.id
+  value       = var.backup_ha_eni_id
 }
 
 output "backup_mgmt_eni_id" {
   description = "ENI ID of backup FortiGate management interface"
-  value       = aws_network_interface.backup_mgmt.id
+  value       = var.backup_mgmt_eni_id
 }
 
 # Transit Gateway Information
@@ -121,8 +121,8 @@ output "ha_configuration" {
   value = {
     primary_hostname   = var.fortigate_hostname_primary
     backup_hostname    = var.fortigate_hostname_backup
-    primary_ha_ip      = aws_network_interface.primary_ha.private_ip
-    backup_ha_ip       = aws_network_interface.backup_ha.private_ip
+    primary_ha_ip      = data.aws_network_interface.primary_ha.private_ip
+    backup_ha_ip       = data.aws_network_interface.backup_ha.private_ip
     bgp_asn           = var.bgp_asn
   }
   sensitive = false

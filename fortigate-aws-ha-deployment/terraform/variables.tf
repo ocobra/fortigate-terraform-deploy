@@ -112,6 +112,79 @@ variable "mgmt_subnet_backup" {
   }
 }
 
+# ENI Configuration (Pre-created by Network Team)
+variable "primary_outside_eni_id" {
+  description = "ENI ID for primary FortiGate outside interface (pre-created by network team)"
+  type        = string
+  validation {
+    condition     = can(regex("^eni-[a-z0-9]{8,17}$", var.primary_outside_eni_id))
+    error_message = "ENI ID must be a valid AWS ENI identifier."
+  }
+}
+
+variable "primary_inside_eni_id" {
+  description = "ENI ID for primary FortiGate inside interface (pre-created by network team)"
+  type        = string
+  validation {
+    condition     = can(regex("^eni-[a-z0-9]{8,17}$", var.primary_inside_eni_id))
+    error_message = "ENI ID must be a valid AWS ENI identifier."
+  }
+}
+
+variable "primary_ha_eni_id" {
+  description = "ENI ID for primary FortiGate HA interface (pre-created by network team)"
+  type        = string
+  validation {
+    condition     = can(regex("^eni-[a-z0-9]{8,17}$", var.primary_ha_eni_id))
+    error_message = "ENI ID must be a valid AWS ENI identifier."
+  }
+}
+
+variable "primary_mgmt_eni_id" {
+  description = "ENI ID for primary FortiGate management interface (pre-created by network team)"
+  type        = string
+  validation {
+    condition     = can(regex("^eni-[a-z0-9]{8,17}$", var.primary_mgmt_eni_id))
+    error_message = "ENI ID must be a valid AWS ENI identifier."
+  }
+}
+
+variable "backup_outside_eni_id" {
+  description = "ENI ID for backup FortiGate outside interface (pre-created by network team)"
+  type        = string
+  validation {
+    condition     = can(regex("^eni-[a-z0-9]{8,17}$", var.backup_outside_eni_id))
+    error_message = "ENI ID must be a valid AWS ENI identifier."
+  }
+}
+
+variable "backup_inside_eni_id" {
+  description = "ENI ID for backup FortiGate inside interface (pre-created by network team)"
+  type        = string
+  validation {
+    condition     = can(regex("^eni-[a-z0-9]{8,17}$", var.backup_inside_eni_id))
+    error_message = "ENI ID must be a valid AWS ENI identifier."
+  }
+}
+
+variable "backup_ha_eni_id" {
+  description = "ENI ID for backup FortiGate HA interface (pre-created by network team)"
+  type        = string
+  validation {
+    condition     = can(regex("^eni-[a-z0-9]{8,17}$", var.backup_ha_eni_id))
+    error_message = "ENI ID must be a valid AWS ENI identifier."
+  }
+}
+
+variable "backup_mgmt_eni_id" {
+  description = "ENI ID for backup FortiGate management interface (pre-created by network team)"
+  type        = string
+  validation {
+    condition     = can(regex("^eni-[a-z0-9]{8,17}$", var.backup_mgmt_eni_id))
+    error_message = "ENI ID must be a valid AWS ENI identifier."
+  }
+}
+
 # FortiGate Configuration
 variable "fortigate_ami_id" {
   description = "AMI ID for FortiGate instances"

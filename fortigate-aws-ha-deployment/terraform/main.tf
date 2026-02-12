@@ -64,6 +64,17 @@ module "fortigate_ha" {
   ha_subnet_backup      = var.ha_subnet_backup
   mgmt_subnet_backup    = var.mgmt_subnet_backup
   
+  # ENI Configuration (Pre-created by Network Team)
+  primary_outside_eni_id = var.primary_outside_eni_id
+  primary_inside_eni_id  = var.primary_inside_eni_id
+  primary_ha_eni_id      = var.primary_ha_eni_id
+  primary_mgmt_eni_id    = var.primary_mgmt_eni_id
+  
+  backup_outside_eni_id = var.backup_outside_eni_id
+  backup_inside_eni_id  = var.backup_inside_eni_id
+  backup_ha_eni_id      = var.backup_ha_eni_id
+  backup_mgmt_eni_id    = var.backup_mgmt_eni_id
+  
   # FortiGate Configuration
   fortigate_ami_id   = var.fortigate_ami_id
   instance_type      = var.instance_type
@@ -92,8 +103,7 @@ module "fortigate_ha" {
   owner_tag   = var.owner_tag
   
   depends_on = [
-    module.security,
-    module.monitoring
+    module.security
   ]
 }
 

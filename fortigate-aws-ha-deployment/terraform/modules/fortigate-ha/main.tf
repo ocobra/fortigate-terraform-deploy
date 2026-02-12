@@ -43,6 +43,39 @@ data "aws_subnet" "mgmt_backup" {
   id = var.mgmt_subnet_backup
 }
 
+# Data sources for pre-created ENIs
+data "aws_network_interface" "primary_outside" {
+  id = var.primary_outside_eni_id
+}
+
+data "aws_network_interface" "primary_inside" {
+  id = var.primary_inside_eni_id
+}
+
+data "aws_network_interface" "primary_ha" {
+  id = var.primary_ha_eni_id
+}
+
+data "aws_network_interface" "primary_mgmt" {
+  id = var.primary_mgmt_eni_id
+}
+
+data "aws_network_interface" "backup_outside" {
+  id = var.backup_outside_eni_id
+}
+
+data "aws_network_interface" "backup_inside" {
+  id = var.backup_inside_eni_id
+}
+
+data "aws_network_interface" "backup_ha" {
+  id = var.backup_ha_eni_id
+}
+
+data "aws_network_interface" "backup_mgmt" {
+  id = var.backup_mgmt_eni_id
+}
+
 # Primary FortiGate Instance
 resource "aws_instance" "fortigate_primary" {
   ami                     = var.fortigate_ami_id
@@ -56,20 +89,20 @@ resource "aws_instance" "fortigate_primary" {
   # Enable detailed monitoring if requested
   monitoring = var.enable_detailed_monitoring
   
-  # User data for initial configuration
+  # Basic user data - detailed config will be applied post-deployment
   user_data = base64encode(templatefile("${path.module}/templates/fortigate-primary-config.tpl", {
     hostname        = var.fortigate_hostname_primary
     admin_password  = var.admin_password
     ha_password     = var.ha_password
     bgp_asn         = var.bgp_asn
-    ha_peer_ip      = aws_network_interface.backup_ha.private_ip
-    inside_ip       = aws_network_interface.primary_inside.private_ip
+    ha_peer_ip      = data.aws_network_interface.backup_ha.private_ip
+    inside_ip       = data.aws_network_interface.primary_inside.private_ip
     inside_netmask  = cidrnetmask(data.aws_subnet.inside_primary.cidr_block)
-    outside_ip      = aws_network_interface.primary_outside.private_ip
+    outside_ip      = data.aws_network_interface.primary_outside.private_ip
     outside_netmask = cidrnetmask(data.aws_subnet.outside_primary.cidr_block)
-    ha_ip           = aws_network_interface.primary_ha.private_ip
+    ha_ip           = data.aws_network_interface.primary_ha.private_ip
     ha_netmask      = cidrnetmask(data.aws_subnet.ha_primary.cidr_block)
-    mgmt_ip         = aws_network_interface.primary_mgmt.private_ip
+    mgmt_ip         = data.aws_network_interface.primary_mgmt.private_ip
     mgmt_netmask    = cidrnetmask(data.aws_subnet.mgmt_primary.cidr_block)
     default_gateway = cidrhost(data.aws_subnet.outside_primary.cidr_block, 1)
   }))
@@ -83,6 +116,7 @@ resource "aws_instance" "fortigate_primary" {
   
   lifecycle {
     create_before_destroy = true
+    ignore_changes = [user_data]  # Ignore changes after initial creation
   }
 }
 
@@ -99,20 +133,20 @@ resource "aws_instance" "fortigate_backup" {
   # Enable detailed monitoring if requested
   monitoring = var.enable_detailed_monitoring
   
-  # User data for initial configuration
+  # Basic user data - detailed config will be applied post-deployment
   user_data = base64encode(templatefile("${path.module}/templates/fortigate-backup-config.tpl", {
     hostname        = var.fortigate_hostname_backup
     admin_password  = var.admin_password
     ha_password     = var.ha_password
     bgp_asn         = var.bgp_asn
-    ha_peer_ip      = aws_network_interface.primary_ha.private_ip
-    inside_ip       = aws_network_interface.backup_inside.private_ip
+    ha_peer_ip      = data.aws_network_interface.primary_ha.private_ip
+    inside_ip       = data.aws_network_interface.backup_inside.private_ip
     inside_netmask  = cidrnetmask(data.aws_subnet.inside_backup.cidr_block)
-    outside_ip      = aws_network_interface.backup_outside.private_ip
+    outside_ip      = data.aws_network_interface.backup_outside.private_ip
     outside_netmask = cidrnetmask(data.aws_subnet.outside_backup.cidr_block)
-    ha_ip           = aws_network_interface.backup_ha.private_ip
+    ha_ip           = data.aws_network_interface.backup_ha.private_ip
     ha_netmask      = cidrnetmask(data.aws_subnet.ha_backup.cidr_block)
-    mgmt_ip         = aws_network_interface.backup_mgmt.private_ip
+    mgmt_ip         = data.aws_network_interface.backup_mgmt.private_ip
     mgmt_netmask    = cidrnetmask(data.aws_subnet.mgmt_backup.cidr_block)
     default_gateway = cidrhost(data.aws_subnet.outside_backup.cidr_block, 1)
   }))
@@ -126,162 +160,57 @@ resource "aws_instance" "fortigate_backup" {
   
   lifecycle {
     create_before_destroy = true
-  }
-}
-
-# Network Interfaces for Primary FortiGate
-resource "aws_network_interface" "primary_outside" {
-  subnet_id         = var.outside_subnet_primary
-  security_groups   = var.security_group_ids
-  source_dest_check = false
-  
-  tags = {
-    Name        = "${var.fortigate_hostname_primary}-outside"
-    Interface   = "outside"
-    Environment = var.environment
-    Owner       = var.owner_tag
-  }
-}
-
-resource "aws_network_interface" "primary_inside" {
-  subnet_id         = var.inside_subnet_primary
-  security_groups   = var.security_group_ids
-  source_dest_check = false
-  
-  tags = {
-    Name        = "${var.fortigate_hostname_primary}-inside"
-    Interface   = "inside"
-    Environment = var.environment
-    Owner       = var.owner_tag
-  }
-}
-
-resource "aws_network_interface" "primary_ha" {
-  subnet_id         = var.ha_subnet_primary
-  security_groups   = var.security_group_ids
-  source_dest_check = false
-  
-  tags = {
-    Name        = "${var.fortigate_hostname_primary}-ha"
-    Interface   = "ha"
-    Environment = var.environment
-    Owner       = var.owner_tag
-  }
-}
-
-resource "aws_network_interface" "primary_mgmt" {
-  subnet_id         = var.mgmt_subnet_primary
-  security_groups   = var.security_group_ids
-  source_dest_check = false
-  
-  tags = {
-    Name        = "${var.fortigate_hostname_primary}-mgmt"
-    Interface   = "mgmt"
-    Environment = var.environment
-    Owner       = var.owner_tag
-  }
-}
-
-# Network Interfaces for Backup FortiGate
-resource "aws_network_interface" "backup_outside" {
-  subnet_id         = var.outside_subnet_backup
-  security_groups   = var.security_group_ids
-  source_dest_check = false
-  
-  tags = {
-    Name        = "${var.fortigate_hostname_backup}-outside"
-    Interface   = "outside"
-    Environment = var.environment
-    Owner       = var.owner_tag
-  }
-}
-
-resource "aws_network_interface" "backup_inside" {
-  subnet_id         = var.inside_subnet_backup
-  security_groups   = var.security_group_ids
-  source_dest_check = false
-  
-  tags = {
-    Name        = "${var.fortigate_hostname_backup}-inside"
-    Interface   = "inside"
-    Environment = var.environment
-    Owner       = var.owner_tag
-  }
-}
-
-resource "aws_network_interface" "backup_ha" {
-  subnet_id         = var.ha_subnet_backup
-  security_groups   = var.security_group_ids
-  source_dest_check = false
-  
-  tags = {
-    Name        = "${var.fortigate_hostname_backup}-ha"
-    Interface   = "ha"
-    Environment = var.environment
-    Owner       = var.owner_tag
-  }
-}
-
-resource "aws_network_interface" "backup_mgmt" {
-  subnet_id         = var.mgmt_subnet_backup
-  security_groups   = var.security_group_ids
-  source_dest_check = false
-  
-  tags = {
-    Name        = "${var.fortigate_hostname_backup}-mgmt"
-    Interface   = "mgmt"
-    Environment = var.environment
-    Owner       = var.owner_tag
+    ignore_changes = [user_data]  # Ignore changes after initial creation
   }
 }
 
 # Attach Network Interfaces to Primary FortiGate
 resource "aws_network_interface_attachment" "primary_outside" {
   instance_id          = aws_instance.fortigate_primary.id
-  network_interface_id = aws_network_interface.primary_outside.id
+  network_interface_id = var.primary_outside_eni_id
   device_index         = 1
 }
 
 resource "aws_network_interface_attachment" "primary_inside" {
   instance_id          = aws_instance.fortigate_primary.id
-  network_interface_id = aws_network_interface.primary_inside.id
+  network_interface_id = var.primary_inside_eni_id
   device_index         = 2
 }
 
 resource "aws_network_interface_attachment" "primary_ha" {
   instance_id          = aws_instance.fortigate_primary.id
-  network_interface_id = aws_network_interface.primary_ha.id
+  network_interface_id = var.primary_ha_eni_id
   device_index         = 3
 }
 
 resource "aws_network_interface_attachment" "primary_mgmt" {
   instance_id          = aws_instance.fortigate_primary.id
-  network_interface_id = aws_network_interface.primary_mgmt.id
+  network_interface_id = var.primary_mgmt_eni_id
   device_index         = 4
 }
 
 # Attach Network Interfaces to Backup FortiGate
 resource "aws_network_interface_attachment" "backup_outside" {
   instance_id          = aws_instance.fortigate_backup.id
-  network_interface_id = aws_network_interface.backup_outside.id
+  network_interface_id = var.backup_outside_eni_id
   device_index         = 1
 }
 
 resource "aws_network_interface_attachment" "backup_inside" {
   instance_id          = aws_instance.fortigate_backup.id
-  network_interface_id = aws_network_interface.backup_inside.id
+  network_interface_id = var.backup_inside_eni_id
   device_index         = 2
 }
 
 resource "aws_network_interface_attachment" "backup_ha" {
   instance_id          = aws_instance.fortigate_backup.id
-  network_interface_id = aws_network_interface.backup_ha.id
+  network_interface_id = var.backup_ha_eni_id
   device_index         = 3
 }
 
 resource "aws_network_interface_attachment" "backup_mgmt" {
   instance_id          = aws_instance.fortigate_backup.id
-  network_interface_id = aws_network_interface.backup_mgmt.id
+  network_interface_id = var.backup_mgmt_eni_id
   device_index         = 4
 }
 
