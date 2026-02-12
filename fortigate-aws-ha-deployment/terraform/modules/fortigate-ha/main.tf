@@ -303,33 +303,74 @@ resource "aws_network_interface_attachment" "backup_mgmt" {
 }
 
 # Disable source/destination check on ENIs for routing
+# Using null_resource with triggers for idempotency
 resource "null_resource" "disable_source_dest_check_primary_outside" {
+  triggers = {
+    eni_id = var.primary_outside_eni_id
+    instance_id = aws_instance.fortigate_primary.id
+  }
+  
   provisioner "local-exec" {
     command = "aws ec2 modify-network-interface-attribute --network-interface-id ${var.primary_outside_eni_id} --no-source-dest-check --region ${var.aws_region}"
+  }
+  
+  provisioner "local-exec" {
+    when    = destroy
+    command = "aws ec2 modify-network-interface-attribute --network-interface-id ${self.triggers.eni_id} --source-dest-check --region ${var.aws_region}"
   }
   
   depends_on = [aws_instance.fortigate_primary]
 }
 
 resource "null_resource" "disable_source_dest_check_primary_inside" {
+  triggers = {
+    eni_id = var.primary_inside_eni_id
+    instance_id = aws_instance.fortigate_primary.id
+  }
+  
   provisioner "local-exec" {
     command = "aws ec2 modify-network-interface-attribute --network-interface-id ${var.primary_inside_eni_id} --no-source-dest-check --region ${var.aws_region}"
+  }
+  
+  provisioner "local-exec" {
+    when    = destroy
+    command = "aws ec2 modify-network-interface-attribute --network-interface-id ${self.triggers.eni_id} --source-dest-check --region ${var.aws_region}"
   }
   
   depends_on = [aws_network_interface_attachment.primary_inside]
 }
 
 resource "null_resource" "disable_source_dest_check_backup_outside" {
+  triggers = {
+    eni_id = var.backup_outside_eni_id
+    instance_id = aws_instance.fortigate_backup.id
+  }
+  
   provisioner "local-exec" {
     command = "aws ec2 modify-network-interface-attribute --network-interface-id ${var.backup_outside_eni_id} --no-source-dest-check --region ${var.aws_region}"
+  }
+  
+  provisioner "local-exec" {
+    when    = destroy
+    command = "aws ec2 modify-network-interface-attribute --network-interface-id ${self.triggers.eni_id} --source-dest-check --region ${var.aws_region}"
   }
   
   depends_on = [aws_instance.fortigate_backup]
 }
 
 resource "null_resource" "disable_source_dest_check_backup_inside" {
+  triggers = {
+    eni_id = var.backup_inside_eni_id
+    instance_id = aws_instance.fortigate_backup.id
+  }
+  
   provisioner "local-exec" {
     command = "aws ec2 modify-network-interface-attribute --network-interface-id ${var.backup_inside_eni_id} --no-source-dest-check --region ${var.aws_region}"
+  }
+  
+  provisioner "local-exec" {
+    when    = destroy
+    command = "aws ec2 modify-network-interface-attribute --network-interface-id ${self.triggers.eni_id} --source-dest-check --region ${var.aws_region}"
   }
   
   depends_on = [aws_network_interface_attachment.backup_inside]
