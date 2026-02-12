@@ -10,7 +10,93 @@ terraform {
   }
 }
 
+# ============================================================================
+# IAM Role and Instance Profile for FortiGate HA EIP Management
+# ============================================================================
+
+# IAM Role for FortiGate HA EIP Management
+resource "aws_iam_role" "fortigate_ha_eip_management" {
+  count = var.enable_eip_failover ? 1 : 0
+  name  = "fortigate-ha-eip-management-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      }
+    }]
+  })
+
+  tags = {
+    Name        = "fortigate-ha-eip-management-role"
+    Environment = var.environment
+    Owner       = var.owner_tag
+    ManagedBy   = "Terraform"
+    Project     = "FortiGate-HA-Deployment"
+  }
+}
+
+# IAM Policy for FortiGate EIP Management
+resource "aws_iam_role_policy" "fortigate_eip_management" {
+  count = var.enable_eip_failover ? 1 : 0
+  name  = "fortigate-eip-management-policy"
+  role  = aws_iam_role.fortigate_ha_eip_management[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "FortiGateDescribeResources"
+        Effect = "Allow"
+        Action = [
+          "ec2:DescribeInstances",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DescribeAddresses",
+          "ec2:DescribeVpcs",
+          "ec2:DescribeSubnets",
+          "ec2:DescribeRouteTables"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "FortiGateManageEIPs"
+        Effect = "Allow"
+        Action = [
+          "ec2:AssociateAddress",
+          "ec2:DisassociateAddress"
+        ]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "ec2:ResourceTag/ManagedBy" = "FortiGate-HA"
+          }
+        }
+      }
+    ]
+  })
+}
+
+# IAM Instance Profile
+resource "aws_iam_instance_profile" "fortigate_ha" {
+  count = var.enable_eip_failover ? 1 : 0
+  name  = "fortigate-ha-instance-profile"
+  role  = aws_iam_role.fortigate_ha_eip_management[0].name
+
+  tags = {
+    Name        = "fortigate-ha-instance-profile"
+    Environment = var.environment
+    Owner       = var.owner_tag
+    ManagedBy   = "Terraform"
+    Project     = "FortiGate-HA-Deployment"
+  }
+}
+
+# ============================================================================
 # Data sources for subnet information
+# ============================================================================
 data "aws_subnet" "outside_primary" {
   id = var.outside_subnet_primary
 }
@@ -81,6 +167,7 @@ resource "aws_instance" "fortigate_primary" {
   ami                     = var.fortigate_ami_id
   instance_type          = var.instance_type
   key_name               = var.key_pair_name
+  iam_instance_profile   = var.enable_eip_failover ? aws_iam_instance_profile.fortigate_ha[0].name : null
   availability_zone      = data.aws_subnet.outside_primary.availability_zone
   subnet_id              = data.aws_subnet.outside_primary.id
   vpc_security_group_ids = var.security_group_ids
@@ -97,6 +184,7 @@ resource "aws_instance" "fortigate_primary" {
     admin_password  = var.admin_password
     ha_password     = var.ha_password
     bgp_asn         = var.bgp_asn
+    aws_region      = var.aws_region
     ha_peer_ip      = data.aws_network_interface.backup_ha.private_ip
     inside_ip       = data.aws_network_interface.primary_inside.private_ip
     inside_netmask  = cidrnetmask(data.aws_subnet.inside_primary.cidr_block)
@@ -127,6 +215,7 @@ resource "aws_instance" "fortigate_backup" {
   ami                     = var.fortigate_ami_id
   instance_type          = var.instance_type
   key_name               = var.key_pair_name
+  iam_instance_profile   = var.enable_eip_failover ? aws_iam_instance_profile.fortigate_ha[0].name : null
   availability_zone      = data.aws_subnet.outside_backup.availability_zone
   subnet_id              = data.aws_subnet.outside_backup.id
   vpc_security_group_ids = var.security_group_ids
@@ -143,6 +232,7 @@ resource "aws_instance" "fortigate_backup" {
     admin_password  = var.admin_password
     ha_password     = var.ha_password
     bgp_asn         = var.bgp_asn
+    aws_region      = var.aws_region
     ha_peer_ip      = data.aws_network_interface.primary_ha.private_ip
     inside_ip       = data.aws_network_interface.backup_inside.private_ip
     inside_netmask  = cidrnetmask(data.aws_subnet.inside_backup.cidr_block)
@@ -265,17 +355,24 @@ data "aws_route_table" "outside_backup" {
   }
 }
 
+# ============================================================================
+# Elastic IP Resources for OUTSIDE Interfaces
+# NOTE: EIPs are allocated but NOT associated when enable_eip_failover=true
+# FortiGate HA will manage EIP associations via AWS SDN connector
+# ============================================================================
+
 # Elastic IP for Primary FortiGate Outside Interface
 resource "aws_eip" "primary_outside" {
   count  = var.allocate_eips && var.primary_outside_eip_id == "" ? 1 : 0
   domain = "vpc"
   
   tags = {
-    Name        = "fortigate-primary-outside-eip"
-    Environment = var.environment
-    Owner       = var.owner_tag
+    Name          = "fortigate-primary-outside-eip"
+    Environment   = var.environment
+    Owner         = var.owner_tag
     FortiGateRole = "primary"
-    Interface   = "outside"
+    Interface     = "outside"
+    ManagedBy     = "FortiGate-HA"  # Required for IAM policy condition
   }
 }
 
@@ -285,12 +382,9 @@ data "aws_eip" "primary_outside_existing" {
   id    = var.primary_outside_eip_id
 }
 
-# Associate EIP with Primary Outside ENI
-resource "aws_eip_association" "primary_outside" {
-  count                = var.allocate_eips ? 1 : 0
-  allocation_id        = var.primary_outside_eip_id != "" ? data.aws_eip.primary_outside_existing[0].id : aws_eip.primary_outside[0].id
-  network_interface_id = var.primary_outside_eni_id
-}
+# NOTE: EIP Association removed - FortiGate HA manages this via AWS SDN connector
+# When enable_eip_failover=true, EIPs are allocated but not statically associated
+# This allows FortiGate to move EIPs between primary and backup during failover
 
 # Elastic IP for Backup FortiGate Outside Interface
 resource "aws_eip" "backup_outside" {
@@ -298,11 +392,12 @@ resource "aws_eip" "backup_outside" {
   domain = "vpc"
   
   tags = {
-    Name        = "fortigate-backup-outside-eip"
-    Environment = var.environment
-    Owner       = var.owner_tag
+    Name          = "fortigate-backup-outside-eip"
+    Environment   = var.environment
+    Owner         = var.owner_tag
     FortiGateRole = "backup"
-    Interface   = "outside"
+    Interface     = "outside"
+    ManagedBy     = "FortiGate-HA"  # Required for IAM policy condition
   }
 }
 
@@ -312,9 +407,6 @@ data "aws_eip" "backup_outside_existing" {
   id    = var.backup_outside_eip_id
 }
 
-# Associate EIP with Backup Outside ENI
-resource "aws_eip_association" "backup_outside" {
-  count                = var.allocate_eips ? 1 : 0
-  allocation_id        = var.backup_outside_eip_id != "" ? data.aws_eip.backup_outside_existing[0].id : aws_eip.backup_outside[0].id
-  network_interface_id = var.backup_outside_eni_id
-}
+# NOTE: EIP Association removed - FortiGate HA manages this via AWS SDN connector
+# When enable_eip_failover=true, EIPs are allocated but not statically associated
+# This allows FortiGate to move EIPs between primary and backup during failover

@@ -190,3 +190,16 @@ variable "owner_tag" {
   type        = string
   default     = "NetworkTeam"
 }
+
+
+# EIP Failover Configuration
+variable "enable_eip_failover" {
+  description = "Enable FortiGate-managed EIP failover for OUTSIDE interfaces using AWS SDN connector. When enabled, EIPs are allocated but not statically associated, allowing FortiGate HA to manage EIP associations during failover events."
+  type        = bool
+  default     = true
+}
+
+variable "aws_region" {
+  description = "AWS region for FortiGate AWS SDN connector configuration"
+  type        = string
+}

@@ -12,6 +12,16 @@ config system global
     set admin-password "${admin_password}"
 end
 
+config system sdn-connector
+    edit "aws-sdn"
+        set type aws
+        set use-metadata-iam enable
+        set region ${aws_region}
+        set update-interval 60
+        set status enable
+    next
+end
+
 config system interface
     edit "port1"
         set vdom "root"

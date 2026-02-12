@@ -148,3 +148,30 @@ output "backup_outside_eip_allocation_id" {
   description = "Elastic IP allocation ID for backup FortiGate outside interface"
   value       = var.allocate_eips ? (var.backup_outside_eip_id != "" ? data.aws_eip.backup_outside_existing[0].id : aws_eip.backup_outside[0].id) : null
 }
+
+
+# IAM Role and Instance Profile Information
+output "iam_role_arn" {
+  description = "ARN of IAM role for FortiGate EIP management (null if EIP failover disabled)"
+  value       = var.enable_eip_failover ? aws_iam_role.fortigate_ha_eip_management[0].arn : null
+}
+
+output "iam_role_name" {
+  description = "Name of IAM role for FortiGate EIP management (null if EIP failover disabled)"
+  value       = var.enable_eip_failover ? aws_iam_role.fortigate_ha_eip_management[0].name : null
+}
+
+output "iam_instance_profile_name" {
+  description = "Name of IAM instance profile attached to FortiGate instances (null if EIP failover disabled)"
+  value       = var.enable_eip_failover ? aws_iam_instance_profile.fortigate_ha[0].name : null
+}
+
+output "iam_instance_profile_arn" {
+  description = "ARN of IAM instance profile attached to FortiGate instances (null if EIP failover disabled)"
+  value       = var.enable_eip_failover ? aws_iam_instance_profile.fortigate_ha[0].arn : null
+}
+
+output "eip_failover_enabled" {
+  description = "Whether EIP failover is enabled for FortiGate HA"
+  value       = var.enable_eip_failover
+}
