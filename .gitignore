@@ -156,3 +156,4 @@ fortigate-aws-ha-deployment/subnet-config.json
 
 # Kiro IDE configuration
 .kiro/
+**/.kiro/
