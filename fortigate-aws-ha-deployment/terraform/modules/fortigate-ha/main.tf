@@ -176,8 +176,6 @@ resource "aws_instance" "fortigate_primary" {
     device_index         = 0
   }
   
-  vpc_security_group_ids = var.security_group_ids
-  
   # Disable source/destination check for routing
   source_dest_check = false
   
@@ -229,8 +227,6 @@ resource "aws_instance" "fortigate_backup" {
     network_interface_id = var.backup_outside_eni_id
     device_index         = 0
   }
-  
-  vpc_security_group_ids = var.security_group_ids
   
   # Disable source/destination check for routing
   source_dest_check = false
