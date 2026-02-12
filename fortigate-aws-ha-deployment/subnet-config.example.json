@@ -1,0 +1,14 @@
+{
+  "primary": {
+    "outside": "subnet-008c04ea3c16cfc44",
+    "inside": "subnet-0dd89264e19b79c71",
+    "ha": "subnet-0e27fec5fef60e89c",
+    "mgmt": "subnet-0b9fb7667ffd28db8"
+  },
+  "backup": {
+    "outside": "subnet-011055542bb0745aa",
+    "inside": "subnet-0c5d1b3f9c73030a5",
+    "ha": "subnet-0d3db8dca9a438fea",
+    "mgmt": "subnet-0dd259113cb275883"
+  }
+}
