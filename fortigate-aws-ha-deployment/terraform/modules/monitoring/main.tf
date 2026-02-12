@@ -8,8 +8,10 @@ resource "aws_cloudwatch_log_group" "flow_logs" {
 
   tags = {
     Name        = "fortigate-vpc-flow-logs"
+    Project     = "FortiGate-HA-Deployment"
     Environment = var.environment
     Owner       = var.owner_tag
+    ManagedBy   = "Terraform"
   }
 }
 
@@ -33,8 +35,10 @@ resource "aws_iam_role" "flow_logs" {
 
   tags = {
     Name        = "fortigate-flow-logs-role"
+    Project     = "FortiGate-HA-Deployment"
     Environment = var.environment
     Owner       = var.owner_tag
+    ManagedBy   = "Terraform"
   }
 }
 
@@ -73,8 +77,10 @@ resource "aws_flow_log" "vpc" {
 
   tags = {
     Name        = "fortigate-vpc-flow-logs"
+    Project     = "FortiGate-HA-Deployment"
     Environment = var.environment
     Owner       = var.owner_tag
+    ManagedBy   = "Terraform"
   }
 }
 
@@ -86,8 +92,10 @@ resource "aws_cloudwatch_log_group" "fortigate" {
 
   tags = {
     Name        = "fortigate-instance-logs-${var.fortigate_instance_ids[count.index]}"
+    Project     = "FortiGate-HA-Deployment"
     Environment = var.environment
     Owner       = var.owner_tag
+    ManagedBy   = "Terraform"
   }
 }
 
@@ -111,8 +119,10 @@ resource "aws_cloudwatch_metric_alarm" "fortigate_cpu" {
 
   tags = {
     Name        = "fortigate-cpu-alarm-${var.fortigate_instance_ids[count.index]}"
+    Project     = "FortiGate-HA-Deployment"
     Environment = var.environment
     Owner       = var.owner_tag
+    ManagedBy   = "Terraform"
   }
 }
 
@@ -136,7 +146,9 @@ resource "aws_cloudwatch_metric_alarm" "fortigate_status" {
 
   tags = {
     Name        = "fortigate-status-alarm-${var.fortigate_instance_ids[count.index]}"
+    Project     = "FortiGate-HA-Deployment"
     Environment = var.environment
     Owner       = var.owner_tag
+    ManagedBy   = "Terraform"
   }
 }
