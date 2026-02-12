@@ -176,9 +176,6 @@ resource "aws_instance" "fortigate_primary" {
     device_index         = 0
   }
   
-  # Disable source/destination check for routing
-  source_dest_check = false
-  
   # Enable detailed monitoring if requested
   monitoring = var.enable_detailed_monitoring
   
@@ -227,9 +224,6 @@ resource "aws_instance" "fortigate_backup" {
     network_interface_id = var.backup_outside_eni_id
     device_index         = 0
   }
-  
-  # Disable source/destination check for routing
-  source_dest_check = false
   
   # Enable detailed monitoring if requested
   monitoring = var.enable_detailed_monitoring
@@ -306,6 +300,35 @@ resource "aws_network_interface_attachment" "backup_mgmt" {
   instance_id          = aws_instance.fortigate_backup.id
   network_interface_id = var.backup_mgmt_eni_id
   device_index         = 3
+}
+
+# Disable source/destination check on all ENIs for routing
+resource "aws_ec2_network_interface_source_dest_check" "primary_outside" {
+  network_interface_id = var.primary_outside_eni_id
+  source_dest_check    = false
+  
+  depends_on = [aws_instance.fortigate_primary]
+}
+
+resource "aws_ec2_network_interface_source_dest_check" "primary_inside" {
+  network_interface_id = var.primary_inside_eni_id
+  source_dest_check    = false
+  
+  depends_on = [aws_network_interface_attachment.primary_inside]
+}
+
+resource "aws_ec2_network_interface_source_dest_check" "backup_outside" {
+  network_interface_id = var.backup_outside_eni_id
+  source_dest_check    = false
+  
+  depends_on = [aws_instance.fortigate_backup]
+}
+
+resource "aws_ec2_network_interface_source_dest_check" "backup_inside" {
+  network_interface_id = var.backup_inside_eni_id
+  source_dest_check    = false
+  
+  depends_on = [aws_network_interface_attachment.backup_inside]
 }
 
 # Transit Gateway VPC Attachment - Use existing attachment
