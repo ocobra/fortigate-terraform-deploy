@@ -80,21 +80,21 @@ resource "aws_flow_log" "vpc" {
 
 # CloudWatch Log Group for FortiGate Instances
 resource "aws_cloudwatch_log_group" "fortigate" {
-  for_each          = toset(var.fortigate_instance_ids)
-  name              = "/aws/ec2/fortigate/${each.value}"
+  count             = length(var.fortigate_instance_ids)
+  name              = "/aws/ec2/fortigate/${var.fortigate_instance_ids[count.index]}"
   retention_in_days = var.log_retention_days
 
   tags = {
-    Name        = "fortigate-instance-logs-${each.value}"
+    Name        = "fortigate-instance-logs-${var.fortigate_instance_ids[count.index]}"
     Environment = var.environment
     Owner       = var.owner_tag
   }
 }
 
-# CloudWatch Alarms for FortiGate Instances
+# CloudWatch Alarms for FortiGate Instances - CPU
 resource "aws_cloudwatch_metric_alarm" "fortigate_cpu" {
-  for_each            = toset(var.fortigate_instance_ids)
-  alarm_name          = "fortigate-${each.value}-high-cpu"
+  count               = length(var.fortigate_instance_ids)
+  alarm_name          = "fortigate-${var.fortigate_instance_ids[count.index]}-high-cpu"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
   metric_name         = "CPUUtilization"
@@ -106,19 +106,20 @@ resource "aws_cloudwatch_metric_alarm" "fortigate_cpu" {
   alarm_actions       = []
 
   dimensions = {
-    InstanceId = each.value
+    InstanceId = var.fortigate_instance_ids[count.index]
   }
 
   tags = {
-    Name        = "fortigate-cpu-alarm-${each.value}"
+    Name        = "fortigate-cpu-alarm-${var.fortigate_instance_ids[count.index]}"
     Environment = var.environment
     Owner       = var.owner_tag
   }
 }
 
+# CloudWatch Alarms for FortiGate Instances - Status Check
 resource "aws_cloudwatch_metric_alarm" "fortigate_status" {
-  for_each            = toset(var.fortigate_instance_ids)
-  alarm_name          = "fortigate-${each.value}-status-check"
+  count               = length(var.fortigate_instance_ids)
+  alarm_name          = "fortigate-${var.fortigate_instance_ids[count.index]}-status-check"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
   metric_name         = "StatusCheckFailed"
@@ -130,11 +131,11 @@ resource "aws_cloudwatch_metric_alarm" "fortigate_status" {
   alarm_actions       = []
 
   dimensions = {
-    InstanceId = each.value
+    InstanceId = var.fortigate_instance_ids[count.index]
   }
 
   tags = {
-    Name        = "fortigate-status-alarm-${each.value}"
+    Name        = "fortigate-status-alarm-${var.fortigate_instance_ids[count.index]}"
     Environment = var.environment
     Owner       = var.owner_tag
   }

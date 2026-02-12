@@ -152,6 +152,25 @@ variable "security_group_ids" {
   type        = list(string)
 }
 
+# Elastic IP Configuration
+variable "allocate_eips" {
+  description = "Whether to allocate Elastic IPs for outside interfaces"
+  type        = bool
+  default     = true
+}
+
+variable "primary_outside_eip_id" {
+  description = "Existing Elastic IP allocation ID for primary outside interface (optional)"
+  type        = string
+  default     = ""
+}
+
+variable "backup_outside_eip_id" {
+  description = "Existing Elastic IP allocation ID for backup outside interface (optional)"
+  type        = string
+  default     = ""
+}
+
 # Monitoring Configuration
 variable "enable_detailed_monitoring" {
   description = "Enable detailed CloudWatch monitoring for EC2 instances"

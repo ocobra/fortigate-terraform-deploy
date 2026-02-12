@@ -11,20 +11,21 @@ terraform {
     }
   }
   
-  # Remote state backend configuration
-  backend "s3" {
-    # These values will be provided during terraform init
-    # bucket         = "your-fortigate-terraform-state"
-    # key            = "fortigate-ha/terraform.tfstate"
-    # region         = "us-east-1"
-    # encrypt        = true
-    # dynamodb_table = "fortigate-terraform-locks"
-  }
+  # Remote state backend configuration (commented out - using local state)
+  # Uncomment and configure if you want to use S3 backend
+  # backend "s3" {
+  #   bucket         = "your-fortigate-terraform-state"
+  #   key            = "fortigate-ha/terraform.tfstate"
+  #   region         = "us-east-1"
+  #   encrypt        = true
+  #   dynamodb_table = "fortigate-terraform-locks"
+  # }
 }
 
 # Configure the AWS Provider
 provider "aws" {
-  region = var.aws_region
+  region  = var.aws_region
+  profile = var.aws_profile != "" ? var.aws_profile : null
   
   default_tags {
     tags = {
@@ -97,6 +98,11 @@ module "fortigate_ha" {
   
   # Monitoring
   enable_detailed_monitoring = var.enable_detailed_monitoring
+  
+  # Elastic IP Configuration
+  allocate_eips           = var.allocate_eips
+  primary_outside_eip_id  = var.primary_outside_eip_id
+  backup_outside_eip_id   = var.backup_outside_eip_id
   
   # Tags
   environment = var.environment

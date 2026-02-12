@@ -82,6 +82,8 @@ resource "aws_instance" "fortigate_primary" {
   instance_type          = var.instance_type
   key_name               = var.key_pair_name
   availability_zone      = data.aws_subnet.outside_primary.availability_zone
+  subnet_id              = data.aws_subnet.outside_primary.id
+  vpc_security_group_ids = var.security_group_ids
   
   # Disable source/destination check for routing
   source_dest_check = false
@@ -126,6 +128,8 @@ resource "aws_instance" "fortigate_backup" {
   instance_type          = var.instance_type
   key_name               = var.key_pair_name
   availability_zone      = data.aws_subnet.outside_backup.availability_zone
+  subnet_id              = data.aws_subnet.outside_backup.id
+  vpc_security_group_ids = var.security_group_ids
   
   # Disable source/destination check for routing
   source_dest_check = false
@@ -214,91 +218,103 @@ resource "aws_network_interface_attachment" "backup_mgmt" {
   device_index         = 4
 }
 
-# Transit Gateway VPC Attachment
-resource "aws_ec2_transit_gateway_vpc_attachment" "fortigate_attachment" {
-  subnet_ids         = [var.inside_subnet_primary, var.inside_subnet_backup]
-  transit_gateway_id = var.transit_gateway_id
-  vpc_id             = var.vpc_id
+# Transit Gateway VPC Attachment - Use existing attachment
+data "aws_ec2_transit_gateway_vpc_attachment" "existing" {
+  filter {
+    name   = "vpc-id"
+    values = [var.vpc_id]
+  }
+  
+  filter {
+    name   = "transit-gateway-id"
+    values = [var.transit_gateway_id]
+  }
+  
+  filter {
+    name   = "state"
+    values = ["available", "pending"]
+  }
+}
+
+# Route Tables - Use existing route tables
+data "aws_route_table" "inside_primary" {
+  filter {
+    name   = "association.subnet-id"
+    values = [var.inside_subnet_primary]
+  }
+}
+
+data "aws_route_table" "inside_backup" {
+  filter {
+    name   = "association.subnet-id"
+    values = [var.inside_subnet_backup]
+  }
+}
+
+data "aws_route_table" "outside_primary" {
+  filter {
+    name   = "association.subnet-id"
+    values = [var.outside_subnet_primary]
+  }
+}
+
+data "aws_route_table" "outside_backup" {
+  filter {
+    name   = "association.subnet-id"
+    values = [var.outside_subnet_backup]
+  }
+}
+
+# Elastic IP for Primary FortiGate Outside Interface
+resource "aws_eip" "primary_outside" {
+  count  = var.allocate_eips && var.primary_outside_eip_id == "" ? 1 : 0
+  domain = "vpc"
   
   tags = {
-    Name        = "fortigate-ha-attachment"
+    Name        = "fortigate-primary-outside-eip"
     Environment = var.environment
     Owner       = var.owner_tag
+    FortiGateRole = "primary"
+    Interface   = "outside"
   }
 }
 
-# Route Tables for Inside Subnets (for Transit Gateway routing)
-resource "aws_route_table" "inside_primary" {
-  vpc_id = var.vpc_id
-  
-  # Route to Transit Gateway for spoke traffic
-  route {
-    cidr_block         = "0.0.0.0/0"
-    transit_gateway_id = var.transit_gateway_id
-  }
+# Use existing EIP if provided
+data "aws_eip" "primary_outside_existing" {
+  count = var.allocate_eips && var.primary_outside_eip_id != "" ? 1 : 0
+  id    = var.primary_outside_eip_id
+}
+
+# Associate EIP with Primary Outside ENI
+resource "aws_eip_association" "primary_outside" {
+  count                = var.allocate_eips ? 1 : 0
+  allocation_id        = var.primary_outside_eip_id != "" ? data.aws_eip.primary_outside_existing[0].id : aws_eip.primary_outside[0].id
+  network_interface_id = var.primary_outside_eni_id
+}
+
+# Elastic IP for Backup FortiGate Outside Interface
+resource "aws_eip" "backup_outside" {
+  count  = var.allocate_eips && var.backup_outside_eip_id == "" ? 1 : 0
+  domain = "vpc"
   
   tags = {
-    Name        = "fortigate-inside-primary-rt"
+    Name        = "fortigate-backup-outside-eip"
     Environment = var.environment
     Owner       = var.owner_tag
+    FortiGateRole = "backup"
+    Interface   = "outside"
   }
 }
 
-resource "aws_route_table" "inside_backup" {
-  vpc_id = var.vpc_id
-  
-  # Route to Transit Gateway for spoke traffic
-  route {
-    cidr_block         = "0.0.0.0/0"
-    transit_gateway_id = var.transit_gateway_id
-  }
-  
-  tags = {
-    Name        = "fortigate-inside-backup-rt"
-    Environment = var.environment
-    Owner       = var.owner_tag
-  }
+# Use existing EIP if provided
+data "aws_eip" "backup_outside_existing" {
+  count = var.allocate_eips && var.backup_outside_eip_id != "" ? 1 : 0
+  id    = var.backup_outside_eip_id
 }
 
-# Route Table Associations
-resource "aws_route_table_association" "inside_primary" {
-  subnet_id      = var.inside_subnet_primary
-  route_table_id = aws_route_table.inside_primary.id
-}
-
-resource "aws_route_table_association" "inside_backup" {
-  subnet_id      = var.inside_subnet_backup
-  route_table_id = aws_route_table.inside_backup.id
-}
-
-# Route Tables for Outside Subnets (for Internet Gateway routing)
-resource "aws_route_table" "outside_primary" {
-  vpc_id = var.vpc_id
-  
-  tags = {
-    Name        = "fortigate-outside-primary-rt"
-    Environment = var.environment
-    Owner       = var.owner_tag
-  }
-}
-
-resource "aws_route_table" "outside_backup" {
-  vpc_id = var.vpc_id
-  
-  tags = {
-    Name        = "fortigate-outside-backup-rt"
-    Environment = var.environment
-    Owner       = var.owner_tag
-  }
-}
-
-# Route Table Associations for Outside Subnets
-resource "aws_route_table_association" "outside_primary" {
-  subnet_id      = var.outside_subnet_primary
-  route_table_id = aws_route_table.outside_primary.id
-}
-
-resource "aws_route_table_association" "outside_backup" {
-  subnet_id      = var.outside_subnet_backup
-  route_table_id = aws_route_table.outside_backup.id
+# Associate EIP with Backup Outside ENI
+resource "aws_eip_association" "backup_outside" {
+  count                = var.allocate_eips ? 1 : 0
+  allocation_id        = var.backup_outside_eip_id != "" ? data.aws_eip.backup_outside_existing[0].id : aws_eip.backup_outside[0].id
+  network_interface_id = var.backup_outside_eni_id
 }

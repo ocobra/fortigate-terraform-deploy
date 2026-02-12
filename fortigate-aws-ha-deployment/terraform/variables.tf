@@ -8,6 +8,12 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "aws_profile" {
+  description = "AWS CLI profile to use (optional, uses default credentials if not specified)"
+  type        = string
+  default     = ""
+}
+
 variable "environment" {
   description = "Environment name (e.g., prod, staging, dev)"
   type        = string
@@ -257,10 +263,8 @@ variable "existing_transit_gateway_id" {
   type        = string
   default     = ""
   validation {
-    condition = var.create_transit_gateway || (
-      !var.create_transit_gateway && can(regex("^tgw-[a-z0-9]{8,17}$", var.existing_transit_gateway_id))
-    )
-    error_message = "When using existing Transit Gateway, a valid Transit Gateway ID must be provided."
+    condition = var.existing_transit_gateway_id == "" || can(regex("^tgw-[a-z0-9]{8,17}$", var.existing_transit_gateway_id))
+    error_message = "Transit Gateway ID must be empty or a valid format (tgw-xxxxxxxxx)."
   }
 }
 
@@ -332,4 +336,23 @@ variable "enable_detailed_monitoring" {
   description = "Enable detailed CloudWatch monitoring for EC2 instances"
   type        = bool
   default     = true
+}
+
+# Elastic IP Configuration
+variable "allocate_eips" {
+  description = "Whether to allocate Elastic IPs for outside interfaces"
+  type        = bool
+  default     = true
+}
+
+variable "primary_outside_eip_id" {
+  description = "Existing Elastic IP allocation ID for primary outside interface (optional)"
+  type        = string
+  default     = ""
+}
+
+variable "backup_outside_eip_id" {
+  description = "Existing Elastic IP allocation ID for backup outside interface (optional)"
+  type        = string
+  default     = ""
 }

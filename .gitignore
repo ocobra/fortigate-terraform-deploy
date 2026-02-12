@@ -147,3 +147,9 @@ Thumbs.db
 # FortiGate specific
 *.conf.backup
 *.log
+
+# FortiGate AWS HA Deployment - Environment specific files
+fortigate-aws-ha-deployment/terraform/terraform.tfvars
+fortigate-aws-ha-deployment/terraform/tfplan
+fortigate-aws-ha-deployment/eni-ids.json
+fortigate-aws-ha-deployment/subnet-config.json

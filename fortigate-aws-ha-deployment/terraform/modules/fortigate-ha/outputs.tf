@@ -101,18 +101,18 @@ output "backup_mgmt_eni_id" {
 # Transit Gateway Information
 output "transit_gateway_attachment_id" {
   description = "Transit Gateway VPC attachment ID"
-  value       = aws_ec2_transit_gateway_vpc_attachment.fortigate_attachment.id
+  value       = data.aws_ec2_transit_gateway_vpc_attachment.existing.id
 }
 
 # Route Table Information
 output "inside_route_table_id" {
   description = "Route table ID for inside subnets"
-  value       = aws_route_table.inside_primary.id
+  value       = data.aws_route_table.inside_primary.id
 }
 
 output "outside_route_table_id" {
   description = "Route table ID for outside subnets"
-  value       = aws_route_table.outside_primary.id
+  value       = data.aws_route_table.outside_primary.id
 }
 
 # HA Configuration Information
@@ -126,4 +126,25 @@ output "ha_configuration" {
     bgp_asn           = var.bgp_asn
   }
   sensitive = false
+}
+
+# Elastic IP Information
+output "primary_outside_eip" {
+  description = "Elastic IP address for primary FortiGate outside interface"
+  value       = var.allocate_eips ? (var.primary_outside_eip_id != "" ? data.aws_eip.primary_outside_existing[0].public_ip : aws_eip.primary_outside[0].public_ip) : null
+}
+
+output "backup_outside_eip" {
+  description = "Elastic IP address for backup FortiGate outside interface"
+  value       = var.allocate_eips ? (var.backup_outside_eip_id != "" ? data.aws_eip.backup_outside_existing[0].public_ip : aws_eip.backup_outside[0].public_ip) : null
+}
+
+output "primary_outside_eip_allocation_id" {
+  description = "Elastic IP allocation ID for primary FortiGate outside interface"
+  value       = var.allocate_eips ? (var.primary_outside_eip_id != "" ? data.aws_eip.primary_outside_existing[0].id : aws_eip.primary_outside[0].id) : null
+}
+
+output "backup_outside_eip_allocation_id" {
+  description = "Elastic IP allocation ID for backup FortiGate outside interface"
+  value       = var.allocate_eips ? (var.backup_outside_eip_id != "" ? data.aws_eip.backup_outside_existing[0].id : aws_eip.backup_outside[0].id) : null
 }

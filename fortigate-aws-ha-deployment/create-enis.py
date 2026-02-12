@@ -31,8 +31,8 @@ SUBNETS = {
     }
 }
 
-# Tags
-TAGS = [
+# Default Tags (will be extended with custom tag if provided)
+DEFAULT_TAGS = [
     {"Key": "Project", "Value": "FortiGate-HA-Deployment"},
     {"Key": "ManagedBy", "Value": "Terraform"},
     {"Key": "Environment", "Value": "prod"},
@@ -135,7 +135,7 @@ def calculate_static_ip(cidr_block: str, offset: int = 10) -> str:
     return str(network.network_address + offset)
 
 
-def get_or_create_security_groups(ec2_client, vpc_id: str) -> Dict[str, str]:
+def get_or_create_security_groups(ec2_client, vpc_id: str, tags: List[Dict]) -> Dict[str, str]:
     """Get or create security groups for FortiGate interfaces"""
     security_groups = {}
     
@@ -211,7 +211,7 @@ def get_or_create_security_groups(ec2_client, vpc_id: str) -> Dict[str, str]:
                         )
                 
                 # Tag security group
-                ec2_client.create_tags(Resources=[sg_id], Tags=TAGS)
+                ec2_client.create_tags(Resources=[sg_id], Tags=tags)
                 security_groups[sg_type] = sg_id
                 
         except Exception as e:
@@ -228,7 +228,8 @@ def create_network_interface(
     security_group_ids: List[str],
     description: str,
     interface_type: str,
-    fortigate_type: str
+    fortigate_type: str,
+    tags: List[Dict]
 ) -> str:
     """Create a network interface with static IP"""
     try:
@@ -248,12 +249,12 @@ def create_network_interface(
         )
         
         # Tag the ENI
-        tags = TAGS + [
+        eni_tags = tags + [
             {"Key": "Name", "Value": f"fortigate-{fortigate_type}-{interface_type}"},
             {"Key": "Interface", "Value": interface_type},
             {"Key": "FortiGateRole", "Value": fortigate_type}
         ]
-        ec2_client.create_tags(Resources=[eni_id], Tags=tags)
+        ec2_client.create_tags(Resources=[eni_id], Tags=eni_tags)
         
         print(f"✅ Created ENI: {eni_id} ({description}) - IP: {private_ip}")
         return eni_id
@@ -276,6 +277,12 @@ Examples:
   
   # Using default profile
   python3 create-enis.py --region us-east-1 --account 678632990402
+  
+  # With custom tag for resource identification
+  python3 create-enis.py --profile myprofile --region us-east-1 --account 678632990402 --tag "deployment-001"
+  
+  # With EIP allocation and custom tag
+  python3 create-enis.py --profile myprofile --region us-east-1 --account 678632990402 --allocate-eips --tag "john-test"
   
   # Using environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
   python3 create-enis.py --region us-east-1 --account 678632990402
@@ -303,6 +310,17 @@ Examples:
         type=str,
         help='JSON file with subnet IDs (optional, will prompt if not provided)'
     )
+    parser.add_argument(
+        '--allocate-eips',
+        action='store_true',
+        default=False,
+        help='Allocate Elastic IPs for outside interfaces (for internet routing)'
+    )
+    parser.add_argument(
+        '--tag',
+        type=str,
+        help='Custom tag value to identify resources created by this script (e.g., "deployment-001" or "john-test"). Will be added as "CreatedBy" tag.'
+    )
     
     args = parser.parse_args()
     
@@ -312,7 +330,14 @@ Examples:
     print(f"Account: {args.account}")
     if args.profile:
         print(f"Profile: {args.profile}")
+    if args.tag:
+        print(f"Custom Tag: CreatedBy={args.tag}")
     print()
+    
+    # Build tags list with custom tag if provided
+    TAGS = DEFAULT_TAGS.copy()
+    if args.tag:
+        TAGS.append({"Key": "CreatedBy", "Value": args.tag})
     
     # Initialize boto3 session and client
     try:
@@ -409,7 +434,7 @@ Examples:
     # Get or create security groups
     try:
         print("🔒 Setting up security groups...")
-        security_groups = get_or_create_security_groups(ec2_client, vpc_id)
+        security_groups = get_or_create_security_groups(ec2_client, vpc_id, TAGS)
         print()
     except Exception as e:
         print(f"❌ Error setting up security groups: {e}")
@@ -421,6 +446,7 @@ Examples:
     
     # Store created ENI IDs
     eni_ids = {}
+    eip_info = {}
     
     # Create ENIs for Primary FortiGate
     print("🔧 Creating ENIs for Primary FortiGate...")
@@ -445,7 +471,8 @@ Examples:
             sg_ids,
             description,
             interface_type,
-            "primary"
+            "primary",
+            TAGS
         )
         
         eni_ids[f"primary_{interface_type}"] = {
@@ -454,6 +481,41 @@ Examples:
             "subnet_id": subnet_id,
             "az": subnet_info['availability_zone']
         }
+        
+        # Allocate Elastic IP for outside interface if requested
+        if args.allocate_eips and interface_type == "outside":
+            try:
+                print(f"🌐 Allocating Elastic IP for Primary {interface_type.upper()} interface...")
+                eip_response = ec2_client.allocate_address(Domain='vpc')
+                eip_allocation_id = eip_response['AllocationId']
+                eip_public_ip = eip_response['PublicIp']
+                
+                # Tag the EIP
+                ec2_client.create_tags(
+                    Resources=[eip_allocation_id],
+                    Tags=TAGS + [
+                        {"Key": "Name", "Value": f"fortigate-primary-{interface_type}-eip"},
+                        {"Key": "Interface", "Value": interface_type},
+                        {"Key": "FortiGateRole", "Value": "primary"}
+                    ]
+                )
+                
+                # Associate EIP with ENI
+                ec2_client.associate_address(
+                    AllocationId=eip_allocation_id,
+                    NetworkInterfaceId=eni_id
+                )
+                
+                print(f"✅ Allocated and associated EIP: {eip_public_ip} ({eip_allocation_id})")
+                
+                eip_info[f"primary_{interface_type}"] = {
+                    "allocation_id": eip_allocation_id,
+                    "public_ip": eip_public_ip,
+                    "eni_id": eni_id
+                }
+                
+            except Exception as e:
+                print(f"⚠️  Warning: Failed to allocate EIP for primary {interface_type}: {e}")
     
     print()
     
@@ -480,7 +542,8 @@ Examples:
             sg_ids,
             description,
             interface_type,
-            "backup"
+            "backup",
+            TAGS
         )
         
         eni_ids[f"backup_{interface_type}"] = {
@@ -489,10 +552,47 @@ Examples:
             "subnet_id": subnet_id,
             "az": subnet_info['availability_zone']
         }
+        
+        # Allocate Elastic IP for outside interface if requested
+        if args.allocate_eips and interface_type == "outside":
+            try:
+                print(f"🌐 Allocating Elastic IP for Backup {interface_type.upper()} interface...")
+                eip_response = ec2_client.allocate_address(Domain='vpc')
+                eip_allocation_id = eip_response['AllocationId']
+                eip_public_ip = eip_response['PublicIp']
+                
+                # Tag the EIP
+                ec2_client.create_tags(
+                    Resources=[eip_allocation_id],
+                    Tags=TAGS + [
+                        {"Key": "Name", "Value": f"fortigate-backup-{interface_type}-eip"},
+                        {"Key": "Interface", "Value": interface_type},
+                        {"Key": "FortiGateRole", "Value": "backup"}
+                    ]
+                )
+                
+                # Associate EIP with ENI
+                ec2_client.associate_address(
+                    AllocationId=eip_allocation_id,
+                    NetworkInterfaceId=eni_id
+                )
+                
+                print(f"✅ Allocated and associated EIP: {eip_public_ip} ({eip_allocation_id})")
+                
+                eip_info[f"backup_{interface_type}"] = {
+                    "allocation_id": eip_allocation_id,
+                    "public_ip": eip_public_ip,
+                    "eni_id": eni_id
+                }
+                
+            except Exception as e:
+                print(f"⚠️  Warning: Failed to allocate EIP for backup {interface_type}: {e}")
     
     print()
     print("=" * 70)
     print("✅ All ENIs created successfully!")
+    if args.allocate_eips and eip_info:
+        print(f"✅ Allocated {len(eip_info)} Elastic IP(s) for internet routing")
     print()
     
     # Print summary
@@ -502,21 +602,31 @@ Examples:
     for interface_type in ["outside", "inside", "ha", "mgmt"]:
         key = f"primary_{interface_type}"
         info = eni_ids[key]
-        print(f"  {interface_type.upper():10} - {info['eni_id']} - {info['private_ip']}")
+        eip_str = ""
+        if key in eip_info:
+            eip_str = f" (Public IP: {eip_info[key]['public_ip']})"
+        print(f"  {interface_type.upper():10} - {info['eni_id']} - {info['private_ip']}{eip_str}")
     
     print("\nBackup FortiGate ENIs:")
     for interface_type in ["outside", "inside", "ha", "mgmt"]:
         key = f"backup_{interface_type}"
         info = eni_ids[key]
-        print(f"  {interface_type.upper():10} - {info['eni_id']} - {info['private_ip']}")
+        eip_str = ""
+        if key in eip_info:
+            eip_str = f" (Public IP: {eip_info[key]['public_ip']})"
+        print(f"  {interface_type.upper():10} - {info['eni_id']} - {info['private_ip']}{eip_str}")
     
     print()
     print("-" * 70)
     
     # Save ENI IDs to file for Terraform
+    output_data = {
+        "enis": eni_ids,
+        "eips": eip_info if eip_info else None
+    }
     output_file = "eni-ids.json"
     with open(output_file, 'w') as f:
-        json.dump(eni_ids, f, indent=2)
+        json.dump(output_data, f, indent=2)
     print(f"💾 ENI details saved to: {output_file}")
     
     # Generate Terraform variable snippet
@@ -532,6 +642,16 @@ Examples:
     print(f'backup_inside_eni_id   = "{eni_ids["backup_inside"]["eni_id"]}"')
     print(f'backup_ha_eni_id       = "{eni_ids["backup_ha"]["eni_id"]}"')
     print(f'backup_mgmt_eni_id     = "{eni_ids["backup_mgmt"]["eni_id"]}"')
+    
+    if eip_info:
+        print()
+        print("# Elastic IP Configuration")
+        print(f'allocate_eips = true')
+        if "primary_outside" in eip_info:
+            print(f'primary_outside_eip_id = "{eip_info["primary_outside"]["allocation_id"]}"')
+        if "backup_outside" in eip_info:
+            print(f'backup_outside_eip_id  = "{eip_info["backup_outside"]["allocation_id"]}"')
+    
     print()
 
 

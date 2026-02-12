@@ -118,8 +118,21 @@ output "connection_info" {
     backup_mgmt_url    = "https://${module.fortigate_ha.backup_mgmt_ip}"
     ssh_command_primary = "ssh -i ~/.ssh/${var.key_pair_name}.pem admin@${module.fortigate_ha.primary_mgmt_ip}"
     ssh_command_backup  = "ssh -i ~/.ssh/${var.key_pair_name}.pem admin@${module.fortigate_ha.backup_mgmt_ip}"
+    primary_outside_public_ip = module.fortigate_ha.primary_outside_eip
+    backup_outside_public_ip  = module.fortigate_ha.backup_outside_eip
   }
   sensitive = false
+}
+
+# Elastic IP Information
+output "elastic_ips" {
+  description = "Elastic IP addresses for outside interfaces"
+  value = {
+    primary_outside_eip = module.fortigate_ha.primary_outside_eip
+    backup_outside_eip  = module.fortigate_ha.backup_outside_eip
+    primary_eip_allocation_id = module.fortigate_ha.primary_outside_eip_allocation_id
+    backup_eip_allocation_id  = module.fortigate_ha.backup_outside_eip_allocation_id
+  }
 }
 
 # Route Table Information (for troubleshooting)

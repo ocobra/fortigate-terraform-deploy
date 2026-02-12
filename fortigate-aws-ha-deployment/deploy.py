@@ -64,6 +64,10 @@ class NetworkConfig:
     backup_inside_eni_id: str
     backup_ha_eni_id: str
     backup_mgmt_eni_id: str
+    # Elastic IP configuration (for internet routing)
+    allocate_eips: bool = False
+    primary_outside_eip_id: Optional[str] = None
+    backup_outside_eip_id: Optional[str] = None
 
 
 @dataclass
@@ -324,6 +328,27 @@ class ConfigurationValidator:
             click.echo(f"❌ Error validating ENIs: {e}")
             return False
     
+    def validate_eip_allocations(self, eip_allocation_ids: List[str]) -> bool:
+        """Validate EIP allocation IDs exist and are available"""
+        try:
+            response = self.ec2.describe_addresses(AllocationIds=eip_allocation_ids)
+            eips = response['Addresses']
+            
+            if len(eips) != len(eip_allocation_ids):
+                click.echo(f"❌ Not all EIP allocations found. Expected {len(eip_allocation_ids)}, found {len(eips)}")
+                return False
+            
+            for eip in eips:
+                if eip.get('AssociationId'):
+                    click.echo(f"⚠️  Warning: EIP {eip['AllocationId']} is already associated with {eip.get('NetworkInterfaceId', 'unknown')}")
+                    click.echo(f"   Public IP: {eip['PublicIp']}")
+            
+            click.echo(f"✅ All {len(eip_allocation_ids)} EIP allocations validated successfully")
+            return True
+        except Exception as e:
+            click.echo(f"❌ Error validating EIP allocations: {e}")
+            return False
+    
     def validate_transit_gateway(self, tgw_id: str) -> bool:
         """Validate Transit Gateway exists and is available"""
         try:
@@ -462,6 +487,11 @@ backup_outside_eni_id = "{config.network.backup_outside_eni_id}"
 backup_inside_eni_id = "{config.network.backup_inside_eni_id}"
 backup_ha_eni_id = "{config.network.backup_ha_eni_id}"
 backup_mgmt_eni_id = "{config.network.backup_mgmt_eni_id}"
+
+# Elastic IP Configuration (for internet routing)
+allocate_eips = {str(config.network.allocate_eips).lower()}
+primary_outside_eip_id = "{config.network.primary_outside_eip_id or ''}"
+backup_outside_eip_id = "{config.network.backup_outside_eip_id or ''}"
 
 # FortiGate Configuration
 fortigate_ami_id = "{config.fortigate.ami_id}"
@@ -675,6 +705,20 @@ class DeploymentEngine:
         if not self.validator.validate_enis(all_enis):
             return False
         
+        # Validate EIP allocations if provided
+        if self.config.network.allocate_eips:
+            eip_allocation_ids = []
+            if self.config.network.primary_outside_eip_id:
+                eip_allocation_ids.append(self.config.network.primary_outside_eip_id)
+            if self.config.network.backup_outside_eip_id:
+                eip_allocation_ids.append(self.config.network.backup_outside_eip_id)
+            
+            if eip_allocation_ids:
+                if not self.validator.validate_eip_allocations(eip_allocation_ids):
+                    return False
+            else:
+                click.echo("ℹ️  EIP allocation enabled but no EIP allocation IDs provided - Terraform will create new EIPs")
+        
         # Validate Transit Gateway if using existing
         if not self.config.transit_gateway.create_new:
             if not self.config.transit_gateway.transit_gateway_id:
@@ -854,6 +898,23 @@ def prompt_network_config() -> NetworkConfig:
     mgmt_cidrs_input = click.prompt("Management access CIDRs (comma-separated)", default="10.0.0.0/8")
     mgmt_cidrs = [cidr.strip() for cidr in mgmt_cidrs_input.split(",")]
     
+    # Elastic IP Configuration
+    click.echo("\nElastic IP Configuration (for internet routing):")
+    allocate_eips = click.confirm("Allocate Elastic IPs for outside interfaces?", default=False)
+    
+    primary_outside_eip_id = None
+    backup_outside_eip_id = None
+    
+    if allocate_eips:
+        use_existing_eips = click.confirm("Use existing EIP allocation IDs?", default=False)
+        if use_existing_eips:
+            primary_outside_eip_id = click.prompt("Primary outside EIP allocation ID (or leave empty to create new)", default="")
+            backup_outside_eip_id = click.prompt("Backup outside EIP allocation ID (or leave empty to create new)", default="")
+            
+            # Convert empty strings to None
+            primary_outside_eip_id = primary_outside_eip_id if primary_outside_eip_id else None
+            backup_outside_eip_id = backup_outside_eip_id if backup_outside_eip_id else None
+    
     return NetworkConfig(
         vpc_id=vpc_id,
         availability_zones=[az1, az2],
@@ -873,7 +934,10 @@ def prompt_network_config() -> NetworkConfig:
         backup_outside_eni_id=backup_outside_eni,
         backup_inside_eni_id=backup_inside_eni,
         backup_ha_eni_id=backup_ha_eni,
-        backup_mgmt_eni_id=backup_mgmt_eni
+        backup_mgmt_eni_id=backup_mgmt_eni,
+        allocate_eips=allocate_eips,
+        primary_outside_eip_id=primary_outside_eip_id,
+        backup_outside_eip_id=backup_outside_eip_id
     )
 
 
