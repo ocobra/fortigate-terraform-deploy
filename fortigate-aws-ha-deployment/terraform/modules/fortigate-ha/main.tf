@@ -169,7 +169,13 @@ resource "aws_instance" "fortigate_primary" {
   key_name               = var.key_pair_name
   iam_instance_profile   = var.enable_eip_failover ? aws_iam_instance_profile.fortigate_ha[0].name : null
   availability_zone      = data.aws_subnet.outside_primary.availability_zone
-  subnet_id              = data.aws_subnet.outside_primary.id
+  
+  # Use pre-created outside ENI as primary network interface (device index 0)
+  network_interface {
+    network_interface_id = var.primary_outside_eni_id
+    device_index         = 0
+  }
+  
   vpc_security_group_ids = var.security_group_ids
   
   # Disable source/destination check for routing
@@ -217,7 +223,13 @@ resource "aws_instance" "fortigate_backup" {
   key_name               = var.key_pair_name
   iam_instance_profile   = var.enable_eip_failover ? aws_iam_instance_profile.fortigate_ha[0].name : null
   availability_zone      = data.aws_subnet.outside_backup.availability_zone
-  subnet_id              = data.aws_subnet.outside_backup.id
+  
+  # Use pre-created outside ENI as primary network interface (device index 0)
+  network_interface {
+    network_interface_id = var.backup_outside_eni_id
+    device_index         = 0
+  }
+  
   vpc_security_group_ids = var.security_group_ids
   
   # Disable source/destination check for routing
@@ -259,53 +271,45 @@ resource "aws_instance" "fortigate_backup" {
 }
 
 # Attach Network Interfaces to Primary FortiGate
-resource "aws_network_interface_attachment" "primary_outside" {
-  instance_id          = aws_instance.fortigate_primary.id
-  network_interface_id = var.primary_outside_eni_id
-  device_index         = 1
-}
+# Note: Outside interface (device index 0) is attached at instance creation
 
 resource "aws_network_interface_attachment" "primary_inside" {
   instance_id          = aws_instance.fortigate_primary.id
   network_interface_id = var.primary_inside_eni_id
-  device_index         = 2
+  device_index         = 1
 }
 
 resource "aws_network_interface_attachment" "primary_ha" {
   instance_id          = aws_instance.fortigate_primary.id
   network_interface_id = var.primary_ha_eni_id
-  device_index         = 3
+  device_index         = 2
 }
 
 resource "aws_network_interface_attachment" "primary_mgmt" {
   instance_id          = aws_instance.fortigate_primary.id
   network_interface_id = var.primary_mgmt_eni_id
-  device_index         = 4
+  device_index         = 3
 }
 
 # Attach Network Interfaces to Backup FortiGate
-resource "aws_network_interface_attachment" "backup_outside" {
-  instance_id          = aws_instance.fortigate_backup.id
-  network_interface_id = var.backup_outside_eni_id
-  device_index         = 1
-}
+# Note: Outside interface (device index 0) is attached at instance creation
 
 resource "aws_network_interface_attachment" "backup_inside" {
   instance_id          = aws_instance.fortigate_backup.id
   network_interface_id = var.backup_inside_eni_id
-  device_index         = 2
+  device_index         = 1
 }
 
 resource "aws_network_interface_attachment" "backup_ha" {
   instance_id          = aws_instance.fortigate_backup.id
   network_interface_id = var.backup_ha_eni_id
-  device_index         = 3
+  device_index         = 2
 }
 
 resource "aws_network_interface_attachment" "backup_mgmt" {
   instance_id          = aws_instance.fortigate_backup.id
   network_interface_id = var.backup_mgmt_eni_id
-  device_index         = 4
+  device_index         = 3
 }
 
 # Transit Gateway VPC Attachment - Use existing attachment
