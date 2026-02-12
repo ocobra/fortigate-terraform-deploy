@@ -154,6 +154,4 @@ fortigate-aws-ha-deployment/terraform/tfplan
 fortigate-aws-ha-deployment/eni-ids.json
 fortigate-aws-ha-deployment/subnet-config.json
 
-# Kiro IDE configuration
-# .kiro/
-# **/.kiro/
+# Kiro IDE configuration - now tracked in git for specs

@@ -281,8 +281,14 @@ Examples:
   # With custom tag for resource identification
   python3 create-enis.py --profile myprofile --region us-east-1 --account 678632990402 --tag "deployment-001"
   
-  # With EIP allocation and custom tag
+  # With EIP allocation for outside interfaces and custom tag
   python3 create-enis.py --profile myprofile --region us-east-1 --account 678632990402 --allocate-eips --tag "john-test"
+  
+  # With EIP allocation for management interfaces (for internet management)
+  python3 create-enis.py --profile myprofile --region us-east-1 --account 678632990402 --allocate-mgmt-eips --tag "john-test"
+  
+  # With EIPs for both outside and management interfaces
+  python3 create-enis.py --profile myprofile --region us-east-1 --account 678632990402 --allocate-eips --allocate-mgmt-eips --tag "john-test"
   
   # Using environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
   python3 create-enis.py --region us-east-1 --account 678632990402
@@ -315,6 +321,12 @@ Examples:
         action='store_true',
         default=False,
         help='Allocate Elastic IPs for outside interfaces (for internet routing)'
+    )
+    parser.add_argument(
+        '--allocate-mgmt-eips',
+        action='store_true',
+        default=False,
+        help='Allocate Elastic IPs for management interfaces (for internet management access)'
     )
     parser.add_argument(
         '--tag',
@@ -482,7 +494,7 @@ Examples:
             "az": subnet_info['availability_zone']
         }
         
-        # Allocate Elastic IP for outside interface if requested
+        # Allocate Elastic IP for outside interface if requested (NO ASSOCIATION for HA failover)
         if args.allocate_eips and interface_type == "outside":
             try:
                 print(f"🌐 Allocating Elastic IP for Primary {interface_type.upper()} interface...")
@@ -496,7 +508,41 @@ Examples:
                     Tags=TAGS + [
                         {"Key": "Name", "Value": f"fortigate-primary-{interface_type}-eip"},
                         {"Key": "Interface", "Value": interface_type},
-                        {"Key": "FortiGateRole", "Value": "primary"}
+                        {"Key": "FortiGateRole", "Value": "primary"},
+                        {"Key": "ManagedBy", "Value": "FortiGate-HA"}
+                    ]
+                )
+                
+                # DO NOT associate EIP with ENI - FortiGate HA will manage association for failover
+                print(f"✅ Allocated EIP: {eip_public_ip} ({eip_allocation_id})")
+                print(f"   ⚠️  EIP NOT associated - FortiGate HA will manage association for failover")
+                
+                eip_info[f"primary_{interface_type}"] = {
+                    "allocation_id": eip_allocation_id,
+                    "public_ip": eip_public_ip,
+                    "eni_id": eni_id,
+                    "associated": False
+                }
+                
+            except Exception as e:
+                print(f"⚠️  Warning: Failed to allocate EIP for primary {interface_type}: {e}")
+        
+        # Allocate Elastic IP for management interface if requested
+        if args.allocate_mgmt_eips and interface_type == "mgmt":
+            try:
+                print(f"🌐 Allocating Elastic IP for Primary {interface_type.upper()} interface (management access)...")
+                eip_response = ec2_client.allocate_address(Domain='vpc')
+                eip_allocation_id = eip_response['AllocationId']
+                eip_public_ip = eip_response['PublicIp']
+                
+                # Tag the EIP
+                ec2_client.create_tags(
+                    Resources=[eip_allocation_id],
+                    Tags=TAGS + [
+                        {"Key": "Name", "Value": f"fortigate-primary-{interface_type}-eip"},
+                        {"Key": "Interface", "Value": interface_type},
+                        {"Key": "FortiGateRole", "Value": "primary"},
+                        {"Key": "Purpose", "Value": "Management"}
                     ]
                 )
                 
@@ -506,16 +552,19 @@ Examples:
                     NetworkInterfaceId=eni_id
                 )
                 
-                print(f"✅ Allocated and associated EIP: {eip_public_ip} ({eip_allocation_id})")
+                print(f"✅ Allocated and associated Management EIP: {eip_public_ip} ({eip_allocation_id})")
+                print(f"   Access FortiGate Primary via: https://{eip_public_ip}")
                 
                 eip_info[f"primary_{interface_type}"] = {
                     "allocation_id": eip_allocation_id,
                     "public_ip": eip_public_ip,
-                    "eni_id": eni_id
+                    "eni_id": eni_id,
+                    "purpose": "management",
+                    "associated": True
                 }
                 
             except Exception as e:
-                print(f"⚠️  Warning: Failed to allocate EIP for primary {interface_type}: {e}")
+                print(f"⚠️  Warning: Failed to allocate Management EIP for primary {interface_type}: {e}")
     
     print()
     
@@ -553,7 +602,7 @@ Examples:
             "az": subnet_info['availability_zone']
         }
         
-        # Allocate Elastic IP for outside interface if requested
+        # Allocate Elastic IP for outside interface if requested (NO ASSOCIATION for HA failover)
         if args.allocate_eips and interface_type == "outside":
             try:
                 print(f"🌐 Allocating Elastic IP for Backup {interface_type.upper()} interface...")
@@ -567,7 +616,41 @@ Examples:
                     Tags=TAGS + [
                         {"Key": "Name", "Value": f"fortigate-backup-{interface_type}-eip"},
                         {"Key": "Interface", "Value": interface_type},
-                        {"Key": "FortiGateRole", "Value": "backup"}
+                        {"Key": "FortiGateRole", "Value": "backup"},
+                        {"Key": "ManagedBy", "Value": "FortiGate-HA"}
+                    ]
+                )
+                
+                # DO NOT associate EIP with ENI - FortiGate HA will manage association for failover
+                print(f"✅ Allocated EIP: {eip_public_ip} ({eip_allocation_id})")
+                print(f"   ⚠️  EIP NOT associated - FortiGate HA will manage association for failover")
+                
+                eip_info[f"backup_{interface_type}"] = {
+                    "allocation_id": eip_allocation_id,
+                    "public_ip": eip_public_ip,
+                    "eni_id": eni_id,
+                    "associated": False
+                }
+                
+            except Exception as e:
+                print(f"⚠️  Warning: Failed to allocate EIP for backup {interface_type}: {e}")
+        
+        # Allocate Elastic IP for management interface if requested
+        if args.allocate_mgmt_eips and interface_type == "mgmt":
+            try:
+                print(f"🌐 Allocating Elastic IP for Backup {interface_type.upper()} interface (management access)...")
+                eip_response = ec2_client.allocate_address(Domain='vpc')
+                eip_allocation_id = eip_response['AllocationId']
+                eip_public_ip = eip_response['PublicIp']
+                
+                # Tag the EIP
+                ec2_client.create_tags(
+                    Resources=[eip_allocation_id],
+                    Tags=TAGS + [
+                        {"Key": "Name", "Value": f"fortigate-backup-{interface_type}-eip"},
+                        {"Key": "Interface", "Value": interface_type},
+                        {"Key": "FortiGateRole", "Value": "backup"},
+                        {"Key": "Purpose", "Value": "Management"}
                     ]
                 )
                 
@@ -577,22 +660,29 @@ Examples:
                     NetworkInterfaceId=eni_id
                 )
                 
-                print(f"✅ Allocated and associated EIP: {eip_public_ip} ({eip_allocation_id})")
+                print(f"✅ Allocated and associated Management EIP: {eip_public_ip} ({eip_allocation_id})")
+                print(f"   Access FortiGate Backup via: https://{eip_public_ip}")
                 
                 eip_info[f"backup_{interface_type}"] = {
                     "allocation_id": eip_allocation_id,
                     "public_ip": eip_public_ip,
-                    "eni_id": eni_id
+                    "eni_id": eni_id,
+                    "purpose": "management",
+                    "associated": True
                 }
                 
             except Exception as e:
-                print(f"⚠️  Warning: Failed to allocate EIP for backup {interface_type}: {e}")
+                print(f"⚠️  Warning: Failed to allocate Management EIP for backup {interface_type}: {e}")
     
     print()
     print("=" * 70)
     print("✅ All ENIs created successfully!")
-    if args.allocate_eips and eip_info:
-        print(f"✅ Allocated {len(eip_info)} Elastic IP(s) for internet routing")
+    if args.allocate_eips and any(k.endswith('_outside') for k in eip_info.keys()):
+        outside_eips = [k for k in eip_info.keys() if k.endswith('_outside')]
+        print(f"✅ Allocated {len(outside_eips)} Elastic IP(s) for outside interfaces (internet routing)")
+    if args.allocate_mgmt_eips and any(k.endswith('_mgmt') for k in eip_info.keys()):
+        mgmt_eips = [k for k in eip_info.keys() if k.endswith('_mgmt')]
+        print(f"✅ Allocated {len(mgmt_eips)} Elastic IP(s) for management interfaces (internet management)")
     print()
     
     # Print summary
@@ -604,7 +694,10 @@ Examples:
         info = eni_ids[key]
         eip_str = ""
         if key in eip_info:
-            eip_str = f" (Public IP: {eip_info[key]['public_ip']})"
+            if eip_info[key].get('associated', True):  # Management EIPs are associated
+                eip_str = f" (Public IP: {eip_info[key]['public_ip']})"
+            else:  # Outside EIPs are NOT associated (for HA failover)
+                eip_str = f" (EIP allocated: {eip_info[key]['public_ip']} - NOT associated, managed by FortiGate HA)"
         print(f"  {interface_type.upper():10} - {info['eni_id']} - {info['private_ip']}{eip_str}")
     
     print("\nBackup FortiGate ENIs:")
@@ -613,7 +706,10 @@ Examples:
         info = eni_ids[key]
         eip_str = ""
         if key in eip_info:
-            eip_str = f" (Public IP: {eip_info[key]['public_ip']})"
+            if eip_info[key].get('associated', True):  # Management EIPs are associated
+                eip_str = f" (Public IP: {eip_info[key]['public_ip']})"
+            else:  # Outside EIPs are NOT associated (for HA failover)
+                eip_str = f" (EIP allocated: {eip_info[key]['public_ip']} - NOT associated, managed by FortiGate HA)"
         print(f"  {interface_type.upper():10} - {info['eni_id']} - {info['private_ip']}{eip_str}")
     
     print()
@@ -651,6 +747,44 @@ Examples:
             print(f'primary_outside_eip_id = "{eip_info["primary_outside"]["allocation_id"]}"')
         if "backup_outside" in eip_info:
             print(f'backup_outside_eip_id  = "{eip_info["backup_outside"]["allocation_id"]}"')
+    
+    # Display management access information if management EIPs were allocated
+    if args.allocate_mgmt_eips and any(k.endswith('_mgmt') for k in eip_info.keys()):
+        print()
+        print("=" * 70)
+        print("🌐 Management Access Information")
+        print("=" * 70)
+        print()
+        print("You can now access your FortiGate instances from the internet:")
+        print()
+        
+        if "primary_mgmt" in eip_info:
+            primary_mgmt_ip = eip_info["primary_mgmt"]["public_ip"]
+            print(f"🔵 Primary FortiGate:")
+            print(f"   HTTPS: https://{primary_mgmt_ip}")
+            print(f"   SSH:   ssh admin@{primary_mgmt_ip}")
+            print()
+        
+        if "backup_mgmt" in eip_info:
+            backup_mgmt_ip = eip_info["backup_mgmt"]["public_ip"]
+            print(f"🟢 Backup FortiGate:")
+            print(f"   HTTPS: https://{backup_mgmt_ip}")
+            print(f"   SSH:   ssh admin@{backup_mgmt_ip}")
+            print()
+        
+        print("⚠️  Security Recommendations:")
+        print("   1. Update the management security group to restrict access to your IP")
+        print("   2. Change the default admin password immediately after first login")
+        print("   3. Enable MFA for admin accounts")
+        print("   4. Review and update firewall policies")
+        print()
+        print("📝 To restrict management access to your IP:")
+        print(f"   aws ec2 authorize-security-group-ingress \\")
+        print(f"     --group-id {security_groups['mgmt']} \\")
+        print(f"     --protocol tcp --port 443 \\")
+        print(f"     --cidr YOUR_IP_ADDRESS/32 \\")
+        print(f"     --profile {args.profile if args.profile else 'default'} \\")
+        print(f"     --region {args.region}")
     
     print()
 
