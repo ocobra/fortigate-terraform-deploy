@@ -622,7 +622,10 @@ class DeploymentEngine:
         
         # Initialize AWS session
         if config.aws.profile:
-            self.aws_session = boto3.Session(profile_name=config.aws.profile)
+            self.aws_session = boto3.Session(
+                profile_name=config.aws.profile,
+                region_name=config.aws.region
+            )
         else:
             self.aws_session = boto3.Session(
                 aws_access_key_id=config.aws.access_key_id,
