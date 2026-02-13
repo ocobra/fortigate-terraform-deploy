@@ -82,76 +82,25 @@ config router static
     edit 1
         set gateway ${default_gateway}
         set device "port1"
+        set comment "Default route to Internet via outside interface"
     next
-end
-
-config router bgp
-    set as ${bgp_asn}
-    set router-id ${inside_ip}
-    set keepalive-timer 10
-    set holdtime-timer 30
-    set ebgp-multipath enable
-    set graceful-restart enable
-    config neighbor
-        edit "169.254.100.1"
-            set capability-graceful-restart enable
-            set ebgp-enforce-multihop enable
-            set soft-reconfiguration enable
-            set remote-as 64512
-            set route-map-in "TGW-IN"
-            set route-map-out "TGW-OUT"
-        next
-        edit "169.254.101.1"
-            set capability-graceful-restart enable
-            set ebgp-enforce-multihop enable
-            set soft-reconfiguration enable
-            set remote-as 64512
-            set route-map-in "TGW-IN"
-            set route-map-out "TGW-OUT"
-        next
-    end
-    config network
-        edit 1
-            set prefix 0.0.0.0 0.0.0.0
-        next
-    end
-end
-
-config router route-map
-    edit "TGW-IN"
-        config rule
-            edit 1
-                set action permit
-                set match-ip-address "TGW-PREFIXES"
-            next
-        end
+    edit 2
+        set dst 10.0.0.0 255.0.0.0
+        set gateway ${inside_gateway}
+        set device "port2"
+        set comment "Route to 10.0.0.0/8 networks via Transit Gateway"
     next
-    edit "TGW-OUT"
-        config rule
-            edit 1
-                set action permit
-                set set-ip-nexthop ${inside_ip}
-            next
-        end
+    edit 3
+        set dst 172.16.0.0 255.240.0.0
+        set gateway ${inside_gateway}
+        set device "port2"
+        set comment "Route to 172.16.0.0/12 networks via Transit Gateway"
     next
-end
-
-config router access-list
-    edit "TGW-PREFIXES"
-        config rule
-            edit 1
-                set action permit
-                set prefix 10.0.0.0 255.0.0.0
-            next
-            edit 2
-                set action permit
-                set prefix 172.16.0.0 255.240.0.0
-            next
-            edit 3
-                set action permit
-                set prefix 192.168.0.0 255.255.0.0
-            next
-        end
+    edit 4
+        set dst 192.168.0.0 255.255.0.0
+        set gateway ${inside_gateway}
+        set device "port2"
+        set comment "Route to 192.168.0.0/16 networks via Transit Gateway"
     next
 end
 
