@@ -1595,6 +1595,11 @@ backup_outside_eip_id = "{config.network.backup_outside_eip_id or ''}"
 # EIP Failover Configuration
 enable_eip_failover = {str(config.network.enable_eip_failover).lower()}
 
+# License Token Configuration
+enable_license_token_retrieval = {str(config.fortigate.licensing.enable_license_token_retrieval).lower()}
+primary_license_secret_name = "{config.fortigate.licensing.primary_license_secret or 'fortigate/primary-license-token'}"
+backup_license_secret_name = "{config.fortigate.licensing.backup_license_secret or 'fortigate/backup-license-token'}"
+
 # FortiGate Configuration
 fortigate_ami_id = "{config.fortigate.ami_id}"
 instance_type = "{config.fortigate.instance_type}"
@@ -4852,8 +4857,9 @@ def render_licensing_page():
         st.session_state.licensing_config = {
             'type': 'BYOL',
             'license_source': 'secrets_manager',
-            'primary_license_secret': '',
-            'backup_license_secret': '',
+            'enable_license_token_retrieval': False,
+            'primary_license_secret': 'fortigate/primary-license-token',
+            'backup_license_secret': 'fortigate/backup-license-token',
             'license_s3_bucket': '',
             'primary_license_s3_key': '',
             'backup_license_s3_key': '',
@@ -4902,23 +4908,43 @@ def render_licensing_page():
         # Secrets Manager configuration
         if license_source == 'secrets_manager':
             st.markdown("#### AWS Secrets Manager Configuration")
+            
+            # License token retrieval option
+            enable_token_retrieval = st.checkbox(
+                "Enable License Token Retrieval",
+                value=st.session_state.licensing_config.get('enable_license_token_retrieval', False),
+                help="""
+                Enable automatic license token retrieval from AWS Secrets Manager during FortiGate bootstrap.
+                When enabled, FortiGate instances will automatically retrieve and apply license tokens from Secrets Manager.
+                
+                **Requirements:**
+                - Store license tokens (not files) in AWS Secrets Manager as plain text
+                - Ensure FortiGate instances have IAM permissions to access Secrets Manager
+                - License tokens will be applied automatically during instance initialization
+                """
+            )
+            st.session_state.licensing_config['enable_license_token_retrieval'] = enable_token_retrieval
+            
+            if enable_token_retrieval:
+                st.info("🔐 License tokens will be automatically retrieved and applied during FortiGate bootstrap")
+            
             col1, col2 = st.columns(2)
             
             with col1:
                 primary_secret = st.text_input(
                     "Primary License Secret Name",
-                    value=st.session_state.licensing_config['primary_license_secret'],
-                    help="Name of the AWS Secrets Manager secret containing the primary FortiGate license",
-                    placeholder="fortigate-primary-license"
+                    value=st.session_state.licensing_config.get('primary_license_secret', 'fortigate/primary-license-token'),
+                    help="Name of the AWS Secrets Manager secret containing the primary FortiGate license token",
+                    placeholder="fortigate/primary-license-token"
                 )
                 st.session_state.licensing_config['primary_license_secret'] = primary_secret
             
             with col2:
                 backup_secret = st.text_input(
                     "Backup License Secret Name",
-                    value=st.session_state.licensing_config['backup_license_secret'],
-                    help="Name of the AWS Secrets Manager secret containing the backup FortiGate license",
-                    placeholder="fortigate-backup-license"
+                    value=st.session_state.licensing_config.get('backup_license_secret', 'fortigate/backup-license-token'),
+                    help="Name of the AWS Secrets Manager secret containing the backup FortiGate license token",
+                    placeholder="fortigate/backup-license-token"
                 )
                 st.session_state.licensing_config['backup_license_secret'] = backup_secret
             
@@ -5136,8 +5162,9 @@ def render_licensing_page():
         # Create LicensingConfig object
         licensing_config = {
             'type': st.session_state.licensing_config['type'],
-            'primary_license_secret': st.session_state.licensing_config.get('primary_license_secret'),
-            'backup_license_secret': st.session_state.licensing_config.get('backup_license_secret'),
+            'enable_license_token_retrieval': st.session_state.licensing_config.get('enable_license_token_retrieval', False),
+            'primary_license_secret': st.session_state.licensing_config.get('primary_license_secret', 'fortigate/primary-license-token'),
+            'backup_license_secret': st.session_state.licensing_config.get('backup_license_secret', 'fortigate/backup-license-token'),
             'license_s3_bucket': st.session_state.licensing_config.get('license_s3_bucket'),
             'primary_license_s3_key': st.session_state.licensing_config.get('primary_license_s3_key'),
             'backup_license_s3_key': st.session_state.licensing_config.get('backup_license_s3_key')

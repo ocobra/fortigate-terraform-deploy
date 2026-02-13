@@ -85,8 +85,9 @@ class AMIDiscoveryConfig:
 class LicensingConfig:
     """FortiGate licensing configuration"""
     type: str = "BYOL"  # BYOL, OnDemand, Reserved
-    primary_license_secret: Optional[str] = None
-    backup_license_secret: Optional[str] = None
+    enable_license_token_retrieval: bool = False
+    primary_license_secret: Optional[str] = "fortigate/primary-license-token"
+    backup_license_secret: Optional[str] = "fortigate/backup-license-token"
     license_s3_bucket: Optional[str] = None
     primary_license_s3_key: Optional[str] = None
     backup_license_s3_key: Optional[str] = None
@@ -574,6 +575,11 @@ backup_outside_eip_id = "{config.network.backup_outside_eip_id or ''}"
 
 # EIP Failover Configuration
 enable_eip_failover = {str(config.network.enable_eip_failover).lower()}
+
+# License Token Configuration
+enable_license_token_retrieval = {str(config.fortigate.licensing.enable_license_token_retrieval).lower()}
+primary_license_secret_name = "{config.fortigate.licensing.primary_license_secret or 'fortigate/primary-license-token'}"
+backup_license_secret_name = "{config.fortigate.licensing.backup_license_secret or 'fortigate/backup-license-token'}"
 
 # FortiGate Configuration
 fortigate_ami_id = "{config.fortigate.ami_id}"
