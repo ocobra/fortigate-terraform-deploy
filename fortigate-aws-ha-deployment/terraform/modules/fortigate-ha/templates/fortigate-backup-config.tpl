@@ -151,4 +151,59 @@ config log syslogd setting
     set format default
 end
 
+--===============0086047718136476635==
+Content-Type: text/x-shellscript; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment; filename="license.sh"
+
+#!/bin/bash
+# FortiGate License Token Bootstrap Script
+# Retrieves license token from AWS Secrets Manager and applies it
+
+%{ if enable_license_token_retrieval }
+# Wait for FortiGate to be fully booted and ready
+sleep 180
+
+# Log file
+LOG_FILE="/var/log/fortigate-license.log"
+
+# Log function
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a $LOG_FILE
+}
+
+log "Starting license token bootstrap..."
+
+# Retrieve license token from Secrets Manager
+log "Retrieving license token from Secrets Manager: ${license_secret_name}"
+LICENSE_TOKEN=$(aws secretsmanager get-secret-value \
+    --secret-id "${license_secret_name}" \
+    --region ${aws_region} \
+    --query SecretString \
+    --output text 2>&1)
+
+if [ $? -eq 0 ] && [ -n "$LICENSE_TOKEN" ]; then
+    log "License token retrieved successfully"
+    
+    # Apply license token via FortiGate CLI
+    log "Applying license token to FortiGate..."
+    /usr/bin/cli -c "execute fortiguard-license-token $LICENSE_TOKEN" 2>&1 | tee -a $LOG_FILE
+    
+    # Wait for license to be processed
+    sleep 30
+    
+    # Verify license status
+    log "Verifying license status..."
+    /usr/bin/cli -c "get system status" | grep -i "license\|vm" | tee -a $LOG_FILE
+    
+    log "License token application completed"
+else
+    log "ERROR: Failed to retrieve license token: $LICENSE_TOKEN"
+fi
+%{ else }
+# License token retrieval disabled
+echo "[$(date)] License token retrieval is disabled" >> /var/log/fortigate-license.log
+%{ endif }
+
 --===============0086047718136476635==--

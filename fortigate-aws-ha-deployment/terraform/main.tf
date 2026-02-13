@@ -109,6 +109,11 @@ module "fortigate_ha" {
   aws_region          = var.aws_region
   aws_profile         = var.aws_profile
   
+  # License Token Configuration
+  enable_license_token_retrieval = var.enable_license_token_retrieval
+  primary_license_secret_name    = var.primary_license_secret_name
+  backup_license_secret_name     = var.backup_license_secret_name
+  
   # Tags
   environment = var.environment
   owner_tag   = var.owner_tag

@@ -93,6 +93,31 @@ resource "aws_iam_role_policy" "fortigate_eip_management" {
   })
 }
 
+# IAM Policy for Secrets Manager License Token Access
+resource "aws_iam_role_policy" "fortigate_secrets_license_access" {
+  count = var.enable_eip_failover && var.enable_license_token_retrieval ? 1 : 0
+  name  = "fortigate-secrets-license-access"
+  role  = aws_iam_role.fortigate_ha_eip_management[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "FortiGateSecretsAccess"
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ]
+        Resource = [
+          "arn:aws:secretsmanager:${var.aws_region}:*:secret:fortigate/primary-license-token*",
+          "arn:aws:secretsmanager:${var.aws_region}:*:secret:fortigate/backup-license-token*"
+        ]
+      }
+    ]
+  })
+}
+
 # IAM Instance Profile
 resource "aws_iam_instance_profile" "fortigate_ha" {
   count = var.enable_eip_failover ? 1 : 0
@@ -212,6 +237,8 @@ resource "aws_instance" "fortigate_primary" {
     default_gateway = cidrhost(data.aws_subnet.outside_primary.cidr_block, 1)
     inside_gateway  = cidrhost(data.aws_subnet.inside_primary.cidr_block, 1)
     mgmt_gateway    = cidrhost(data.aws_subnet.mgmt_primary.cidr_block, 1)
+    enable_license_token_retrieval = var.enable_license_token_retrieval
+    license_secret_name = var.primary_license_secret_name
   }))
   
   tags = {
@@ -263,6 +290,8 @@ resource "aws_instance" "fortigate_backup" {
     default_gateway = cidrhost(data.aws_subnet.outside_backup.cidr_block, 1)
     inside_gateway  = cidrhost(data.aws_subnet.inside_backup.cidr_block, 1)
     mgmt_gateway    = cidrhost(data.aws_subnet.mgmt_backup.cidr_block, 1)
+    enable_license_token_retrieval = var.enable_license_token_retrieval
+    license_secret_name = var.backup_license_secret_name
   }))
   
   tags = {

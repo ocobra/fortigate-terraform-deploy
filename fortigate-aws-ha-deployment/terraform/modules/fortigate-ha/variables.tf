@@ -209,3 +209,21 @@ variable "aws_profile" {
   type        = string
   default     = ""
 }
+
+variable "enable_license_token_retrieval" {
+  description = "Enable automatic license token retrieval from AWS Secrets Manager"
+  type        = bool
+  default     = false
+}
+
+variable "primary_license_secret_name" {
+  description = "AWS Secrets Manager secret name for primary FortiGate license token"
+  type        = string
+  default     = "fortigate/primary-license-token"
+}
+
+variable "backup_license_secret_name" {
+  description = "AWS Secrets Manager secret name for backup FortiGate license token"
+  type        = string
+  default     = "fortigate/backup-license-token"
+}
