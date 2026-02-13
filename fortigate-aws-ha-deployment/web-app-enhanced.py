@@ -2830,7 +2830,7 @@ HELP_TEXT = {
     
     Default: 64512 (private ASN range: 64512-65534)
     
-    Used for BGP routing between Transit Gateway and FortiGate.
+    **Note**: Reserved for future use. Current implementation uses static routing.
     Choose a unique ASN that doesn't conflict with your existing network.
     """,
     
@@ -2839,8 +2839,9 @@ HELP_TEXT = {
     
     Default: 65000 (private ASN range: 64512-65534)
     
-    Must be different from the Transit Gateway ASN.
-    Used for dynamic routing and route advertisement.
+    **Note**: Reserved for future use. Current implementation uses static routing with:
+    - Default route (0.0.0.0/0) to Internet
+    - RFC 1918 routes to Transit Gateway
     """,
     
     'spoke_vpc_cidrs': """
@@ -2848,7 +2849,7 @@ HELP_TEXT = {
     
     Format: Comma-separated list (e.g., 10.1.0.0/16, 10.2.0.0/16)
     
-    These routes will be advertised via BGP to enable traffic inspection.
+    These networks are routed through FortiGate for inspection via static routes.
     FortiGate will inspect and secure traffic to/from these networks.
     """,
     
@@ -3998,7 +3999,7 @@ def render_configuration_page():
     
     render_parameter_section(
         "🌐 Transit Gateway Configuration",
-        description="Configure AWS Transit Gateway for hub-and-spoke network architecture with BGP routing.",
+        description="Configure AWS Transit Gateway for hub-and-spoke network architecture. Current implementation uses static routing with BGP ASNs reserved for future use.",
         required=False
     )
     
@@ -4041,8 +4042,16 @@ def render_configuration_page():
             st.warning("⚠️ Transit Gateway ID is required when not creating a new Transit Gateway")
     
     # BGP ASN inputs
-    st.markdown("**BGP Configuration**")
-    st.info("ℹ️ BGP ASNs are typically in the range 64512-65534 for private use. FortiGate BGP ASN is used for the FortiGate instances, Transit Gateway BGP ASN is used for the Transit Gateway.")
+    st.markdown("**Routing Configuration**")
+    st.info("""
+ℹ️ **Current Implementation**: FortiGate uses static routing for Transit Gateway connectivity.
+
+**Static Routes Configured**:
+- Default route (0.0.0.0/0) → Internet via outside interface
+- RFC 1918 routes (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) → Transit Gateway via inside interface
+
+**BGP ASNs**: Reserved for future use if dynamic routing is implemented.
+""")
     
     col1, col2 = st.columns(2)
     
@@ -4054,7 +4063,8 @@ def render_configuration_page():
             value=current_tgw.bgp_asn if current_tgw else 65000,
             min_value=64512,
             max_value=65534,
-            step=1
+            step=1,
+            help="Reserved for future BGP implementation. Current deployment uses static routing."
         )
     
     with col2:
@@ -4065,7 +4075,8 @@ def render_configuration_page():
             value=current_tgw.transit_gateway_asn if current_tgw else 64512,
             min_value=64512,
             max_value=65534,
-            step=1
+            step=1,
+            help="Reserved for future BGP implementation. Current deployment uses static routing."
         )
     
     # Spoke VPC CIDRs text area
@@ -4096,6 +4107,21 @@ def render_configuration_page():
         description="Configure VPC Flow Logs and CloudWatch monitoring for network traffic analysis and instance metrics.",
         required=False
     )
+    
+    # Add logging capabilities clarification
+    st.info("""
+ℹ️ **Logging Capabilities**:
+
+**Enabled by Default**:
+- **VPC Flow Logs**: Network traffic metadata → CloudWatch Logs
+- **EC2 Detailed Monitoring**: Instance metrics (CPU, network, disk) → CloudWatch Metrics
+
+**FortiGate Application Logs**:
+- Available via FortiGate web GUI (System > Log & Report)
+- Not automatically sent to CloudWatch (requires additional infrastructure)
+
+**For Centralized FortiGate Logging**: Deploy a syslog forwarder EC2 instance or use FortiAnalyzer.
+""")
     
     # Get current Monitoring config values if they exist
     current_monitoring = current_config.monitoring if current_config else None
