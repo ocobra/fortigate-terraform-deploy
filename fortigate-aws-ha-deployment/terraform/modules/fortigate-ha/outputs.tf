@@ -104,17 +104,6 @@ output "transit_gateway_attachment_id" {
   value       = data.aws_ec2_transit_gateway_vpc_attachment.existing.id
 }
 
-# Route Table Information
-output "inside_route_table_id" {
-  description = "Route table ID for inside subnets"
-  value       = data.aws_route_table.inside_primary.id
-}
-
-output "outside_route_table_id" {
-  description = "Route table ID for outside subnets"
-  value       = data.aws_route_table.outside_primary.id
-}
-
 # HA Configuration Information
 output "ha_configuration" {
   description = "HA configuration details"
