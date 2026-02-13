@@ -1457,8 +1457,61 @@ def main(config: Optional[str], plan_only: bool, destroy: bool, save_config: Opt
             else:
                 config_data = json.load(f)
         
-        # Convert to DeploymentConfig (simplified for demo)
-        deployment_config = DeploymentConfig(**config_data)
+        # Convert to DeploymentConfig with proper nested dataclass construction
+        try:
+            # Reconstruct nested dataclass objects
+            aws_config = AWSConfig(**config_data.get('aws', {}))
+            
+            network_dict = config_data.get('network', {})
+            network_config = NetworkConfig(**network_dict)
+            
+            fortigate_dict = config_data.get('fortigate', {})
+            # Handle nested AMIDiscoveryConfig
+            ami_discovery_dict = fortigate_dict.get('ami_discovery', {})
+            ami_discovery = AMIDiscoveryConfig(**ami_discovery_dict)
+            
+            # Handle nested LicensingConfig
+            licensing_dict = fortigate_dict.get('licensing', {})
+            licensing = LicensingConfig(**licensing_dict)
+            
+            # Create FortiGateConfig with nested objects
+            fortigate_config = FortiGateConfig(
+                ami_id=fortigate_dict.get('ami_id'),
+                ami_discovery=ami_discovery,
+                licensing=licensing,
+                instance_type=fortigate_dict.get('instance_type'),
+                key_pair_name=fortigate_dict.get('key_pair_name'),
+                admin_password=fortigate_dict.get('admin_password'),
+                ha_password=fortigate_dict.get('ha_password'),
+                hostname_primary=fortigate_dict.get('hostname_primary', 'fortigate-primary'),
+                hostname_backup=fortigate_dict.get('hostname_backup', 'fortigate-backup')
+            )
+            
+            transit_gateway_dict = config_data.get('transit_gateway', {})
+            transit_gateway_config = TransitGatewayConfig(**transit_gateway_dict)
+            
+            monitoring_dict = config_data.get('monitoring', {})
+            monitoring_config = MonitoringConfig(**monitoring_dict)
+            
+            backend_dict = config_data.get('backend', {})
+            backend_config = BackendConfig(**backend_dict)
+            
+            # Create complete DeploymentConfig
+            deployment_config = DeploymentConfig(
+                aws=aws_config,
+                network=network_config,
+                fortigate=fortigate_config,
+                transit_gateway=transit_gateway_config,
+                monitoring=monitoring_config,
+                backend=backend_config,
+                environment=config_data.get('environment', 'prod'),
+                owner_tag=config_data.get('owner_tag', 'NetworkTeam')
+            )
+            
+        except Exception as e:
+            click.echo(f"❌ Error parsing configuration file: {e}")
+            click.echo("💡 Please check your configuration file format")
+            sys.exit(1)
     else:
         # Interactive prompts
         aws_config = prompt_aws_config()
