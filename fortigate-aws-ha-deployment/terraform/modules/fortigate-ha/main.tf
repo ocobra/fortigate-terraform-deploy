@@ -449,34 +449,14 @@ data "aws_ec2_transit_gateway_vpc_attachment" "existing" {
   }
 }
 
-# Route Tables - Use existing route tables
-data "aws_route_table" "inside_primary" {
-  filter {
-    name   = "association.subnet-id"
-    values = [var.inside_subnet_primary]
-  }
-}
-
-data "aws_route_table" "inside_backup" {
-  filter {
-    name   = "association.subnet-id"
-    values = [var.inside_subnet_backup]
-  }
-}
-
-data "aws_route_table" "outside_primary" {
-  filter {
-    name   = "association.subnet-id"
-    values = [var.outside_subnet_primary]
-  }
-}
-
-data "aws_route_table" "outside_backup" {
-  filter {
-    name   = "association.subnet-id"
-    values = [var.outside_subnet_backup]
-  }
-}
+# ============================================================================
+# Route Tables - REMOVED
+# These data sources were looking for explicit subnet-to-route-table associations
+# which don't exist when subnets use the VPC's main/default route table.
+# Since these aren't used anywhere in the configuration, they've been removed.
+# If you need to manage routes, you can add them back with proper logic to
+# handle both explicit associations and default route tables.
+# ============================================================================
 
 # ============================================================================
 # Elastic IP Resources for OUTSIDE Interfaces
