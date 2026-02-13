@@ -4417,6 +4417,9 @@ def render_configuration_page():
                 enable_eip_failover=enable_eip_failover
             )
             
+            # Get licensing configuration from session state
+            licensing_dict = st.session_state.deployment_config.get('licensing', {})
+            
             # Create FortiGate config object
             fortigate_config = FortiGateConfig(
                 ami_id=ami_id,
@@ -4427,12 +4430,13 @@ def render_configuration_page():
                     architecture="x86_64"
                 ),
                 licensing=LicensingConfig(
-                    type="BYOL",
-                    primary_license_secret=None,
-                    backup_license_secret=None,
-                    license_s3_bucket=None,
-                    primary_license_s3_key=None,
-                    backup_license_s3_key=None
+                    type=licensing_dict.get('type', 'BYOL'),
+                    enable_license_token_retrieval=licensing_dict.get('enable_license_token_retrieval', False),
+                    primary_license_secret=licensing_dict.get('primary_license_secret', 'fortigate/primary-license-token'),
+                    backup_license_secret=licensing_dict.get('backup_license_secret', 'fortigate/backup-license-token'),
+                    license_s3_bucket=licensing_dict.get('license_s3_bucket'),
+                    primary_license_s3_key=licensing_dict.get('primary_license_s3_key'),
+                    backup_license_s3_key=licensing_dict.get('backup_license_s3_key')
                 ),
                 instance_type=instance_type,
                 key_pair_name=key_pair_name,
