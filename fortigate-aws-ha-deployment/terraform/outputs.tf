@@ -144,12 +144,3 @@ output "iam_configuration" {
     eip_failover_enabled   = module.fortigate_ha.eip_failover_enabled
   }
 }
-
-# Route Table Information (for troubleshooting)
-output "route_table_info" {
-  description = "Route table information for troubleshooting"
-  value = {
-    inside_route_table_id  = module.fortigate_ha.inside_route_table_id
-    outside_route_table_id = module.fortigate_ha.outside_route_table_id
-  }
-}
