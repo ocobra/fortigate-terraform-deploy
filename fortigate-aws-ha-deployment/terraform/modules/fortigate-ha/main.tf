@@ -337,10 +337,9 @@ resource "aws_network_interface_attachment" "backup_mgmt" {
 # Using null_resource with triggers for idempotency
 resource "null_resource" "disable_source_dest_check_primary_outside" {
   triggers = {
-    eni_id      = var.primary_outside_eni_id
-    instance_id = aws_instance.fortigate_primary.id
-    region      = var.aws_region
-    profile     = var.aws_profile
+    eni_id  = var.primary_outside_eni_id
+    region  = var.aws_region
+    profile = var.aws_profile
   }
   
   provisioner "local-exec" {
@@ -357,10 +356,9 @@ resource "null_resource" "disable_source_dest_check_primary_outside" {
 
 resource "null_resource" "disable_source_dest_check_primary_inside" {
   triggers = {
-    eni_id      = var.primary_inside_eni_id
-    instance_id = aws_instance.fortigate_primary.id
-    region      = var.aws_region
-    profile     = var.aws_profile
+    eni_id  = var.primary_inside_eni_id
+    region  = var.aws_region
+    profile = var.aws_profile
   }
   
   provisioner "local-exec" {
@@ -377,10 +375,9 @@ resource "null_resource" "disable_source_dest_check_primary_inside" {
 
 resource "null_resource" "disable_source_dest_check_backup_outside" {
   triggers = {
-    eni_id      = var.backup_outside_eni_id
-    instance_id = aws_instance.fortigate_backup.id
-    region      = var.aws_region
-    profile     = var.aws_profile
+    eni_id  = var.backup_outside_eni_id
+    region  = var.aws_region
+    profile = var.aws_profile
   }
   
   provisioner "local-exec" {
@@ -397,10 +394,9 @@ resource "null_resource" "disable_source_dest_check_backup_outside" {
 
 resource "null_resource" "disable_source_dest_check_backup_inside" {
   triggers = {
-    eni_id      = var.backup_inside_eni_id
-    instance_id = aws_instance.fortigate_backup.id
-    region      = var.aws_region
-    profile     = var.aws_profile
+    eni_id  = var.backup_inside_eni_id
+    region  = var.aws_region
+    profile = var.aws_profile
   }
   
   provisioner "local-exec" {
