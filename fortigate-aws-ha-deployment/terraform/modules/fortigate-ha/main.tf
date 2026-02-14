@@ -222,7 +222,13 @@ resource "aws_instance" "fortigate_primary" {
   
   lifecycle {
     create_before_destroy = true
-    ignore_changes = [user_data]  # Ignore changes after initial creation
+    ignore_changes = [
+      user_data,
+      availability_zone,
+      subnet_id,
+      vpc_security_group_ids,
+      source_dest_check
+    ]
   }
 }
 
@@ -275,7 +281,13 @@ resource "aws_instance" "fortigate_backup" {
   
   lifecycle {
     create_before_destroy = true
-    ignore_changes = [user_data]  # Ignore changes after initial creation
+    ignore_changes = [
+      user_data,
+      availability_zone,
+      subnet_id,
+      vpc_security_group_ids,
+      source_dest_check
+    ]
   }
 }
 
