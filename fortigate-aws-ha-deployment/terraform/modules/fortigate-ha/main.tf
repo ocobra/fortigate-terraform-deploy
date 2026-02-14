@@ -40,6 +40,7 @@ resource "aws_iam_role" "fortigate_ha_eip_management" {
 }
 
 # IAM Policy for FortiGate EIP Management
+# Based on FortiGate AWS HA documentation requirements
 resource "aws_iam_role_policy" "fortigate_eip_management" {
   count = var.enable_eip_failover ? 1 : 0
   name  = "fortigate-eip-management-policy"
@@ -49,43 +50,14 @@ resource "aws_iam_role_policy" "fortigate_eip_management" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "FortiGateDescribeResources"
+        Sid    = "FortiGateHAManagement"
         Effect = "Allow"
         Action = [
-          "ec2:DescribeInstances",
-          "ec2:DescribeNetworkInterfaces",
-          "ec2:DescribeAddresses",
-          "ec2:DescribeVpcs",
-          "ec2:DescribeSubnets",
-          "ec2:DescribeRouteTables"
-        ]
-        Resource = "*"
-      },
-      {
-        Sid    = "FortiGateManageEIPs"
-        Effect = "Allow"
-        Action = [
+          "ec2:Describe*",
           "ec2:AssociateAddress",
-          "ec2:DisassociateAddress"
-        ]
-        Resource = "*"
-      },
-      {
-        Sid    = "FortiGateManageNetworkInterfaces"
-        Effect = "Allow"
-        Action = [
           "ec2:AssignPrivateIpAddresses",
-          "ec2:UnassignPrivateIpAddresses"
-        ]
-        Resource = "*"
-      },
-      {
-        Sid    = "FortiGateManageRoutes"
-        Effect = "Allow"
-        Action = [
-          "ec2:ReplaceRoute",
-          "ec2:CreateRoute",
-          "ec2:DeleteRoute"
+          "ec2:UnassignPrivateIpAddresses",
+          "ec2:ReplaceRoute"
         ]
         Resource = "*"
       }
